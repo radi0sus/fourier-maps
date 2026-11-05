@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Fourier maps</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="static/css/style.css"></head>
+<body><main>
+<header><h1>Fourier maps</h1>
+<p class="sub">Fourier contour maps (Fo&minus;Fc, Fo, Fc) from a CIF with reflection data &middot; runs entirely in your browser</p></header>
+
+<label id="drop" class="drop tip-below" data-tip="Drop a CIF here or click to choose one. It needs the model (cell, symmetry, atoms, ADPs) plus reflection data (_shelx_hkl_file, _refln or _diffrn_refln).">
+ <input type="file" id="file" accept=".cif" hidden>
+ <span class="dz-title">Drop a CIF here</span>
+ <span class="dz-sub">or click to choose a file &middot; needs _shelx_hkl_file, _refln or _diffrn_refln data</span>
+ <span id="dzname" class="dz-name"></span>
+</label>
+
+<div class="grid2">
+ <section class="card"><h2>Plane</h2>
+  <div class="row3" data-tip="Three atoms that define the section plane. The map is drawn in the plane through them, centred on their midpoint."><select id="a1"></select><select id="a2"></select><select id="a3"></select></div>
+  <label class="sl" data-tip="Shifts the section parallel to itself, along its normal. Positive and negative values look above and below the plane through the three atoms."><span>Offset <output id="offOut"></output></span><input id="off" type="range" min="-3" max="3" step="0.05" value="0" data-u=" &Aring;"></label>
+  <label class="sl" data-tip="Atoms closer to the plane than this distance are drawn into the map, with bonds between them."><span>Atom slab <output id="slabOut"></output></span><input id="slab" type="range" min="0.1" max="1" step="0.05" value="0.4" data-u=" &Aring;"></label>
+ </section>
+ <section class="card"><h2>Map</h2>
+  <div data-tip="Fo−Fc: difference map (residual density; the F000 term cancels). Fo / Fc (relative): without the F000 term, so zero means the cell-average density. Fo / Fc (absolute): F000 (electrons per cell, from the CIF) is added back as a constant, so the map shows the real electron density in e/Å³, mostly positive apart from truncation ripples. F000 cancels in Fo−Fc."><select id="type"><option value="diff">Fo &minus; Fc (difference)</option><option value="fo">Fo (relative to cell mean)</option><option value="fc">Fc (relative to cell mean)</option><option value="fo_abs">Fo (absolute, with F000)</option><option value="fc_abs">Fc (absolute, with F000)</option></select></div>
+  <label class="sl" data-tip="Density step between neighbouring contour lines. Solid = positive, dashed = negative, dotted = zero. Smaller steps show weaker features; typical: 0.05 e/Å³ for difference maps, 0.5 for Fo/Fc."><span>Contour step <output id="cstepOut"></output></span><input id="cstep" type="range" min="0.01" max="1" step="0.01" value="0.05" data-u=" e/&Aring;&sup3;"></label>
+  <label class="sl" data-tip="Leaves out reflections with a d-spacing below this value. 0 = use all. A cut reduces noise and Fourier ripples but blurs the map."><span>Resolution limit d<sub>min</sub> <output id="dminOut"></output></span><input id="dmin" type="range" min="0" max="2" step="0.05" value="0" data-u=" &Aring;"></label>
+ </section>
+</div>
+
+<section class="card"><h2>View</h2>
+ <div class="grid2">
+  <label class="sl" data-tip="Half the edge length of the square map section, in Å."><span>Half width <output id="extOut"></output></span><input id="ext" type="range" min="2" max="8" step="0.5" value="4" data-u=" &Aring;"></label>
+  <label class="sl" data-tip="Distance between the points where the density is evaluated. Smaller = smoother contours, but the calculation time grows with 1/spacing²."><span>Grid spacing <output id="gstepOut"></output></span><input id="gstep" type="range" min="0.02" max="0.15" step="0.01" value="0.05" data-u=" &Aring;"></label>
+ <div class="opts">
+  <label class="switch" data-tip="Show or hide the atoms and bonds lying in the section plane (within the atom slab)."><input type="checkbox" id="showAtoms" checked><span>Atoms &amp; bonds</span></label>
+  <label class="switch" data-tip="Show or hide the legend at the bottom of the map: line styles, contour step and, in colour mode, the colour bar. The scale bar stays."><input type="checkbox" id="showLegend" checked><span>Legend</span></label>
+  <div class="seg">
+   <input type="radio" name="cmode" id="cm0" value="bw" checked><label for="cm0" data-tip="Contour lines only: solid = positive, dashed = negative, dotted = zero.">Black / white</label><input type="radio" name="cmode" id="cm1" value="col"><label for="cm1" data-tip="Adds shaded density below the contours: blue = positive, red = negative, white = zero.">Blue / red</label>
+  </div>
+ </div>
+</section>
+
+<button id="go" disabled data-tip="Calculates the map with the current settings. Structure factors are computed only once, when the file is loaded.">Calculate</button>
+<canvas id="cv" width="800" height="800"></canvas>
+<button id="png" class="ghost" disabled data-tip="Saves the map as a PNG image exactly as shown, including atoms, legend and colours. Available after a calculation.">Save PNG</button>
+<section class="card" data-tip="Merging and refinement statistics of this tool, next to the values stored in the CIF (Rint, R1, wR2, unique reflections)."><h2>Log</h2><div id="info" class="info">Load a CIF to start.</div></section>
+</main>
+<script src="static/js/cif.js"></script><script src="static/js/hkl-parser.js"></script><script src="static/js/scattering-factors.js"></script>
+<script src="static/js/map.js"></script><script src="static/js/app.js"></script>
+</body></html>
