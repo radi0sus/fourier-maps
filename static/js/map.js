@@ -110,33 +110,80 @@ function planeFrame(m,labels,off=0){
   const o=[0,1,2].map(i=>(P[0][i]+P[1][i]+P[2][i])/3),e1=unit(P[1].map((v,i)=>v-P[0][i]));
   const n=unit(cross(e1,P[2].map((v,i)=>v-P[0][i]))),e2=cross(n,e1);return{o:o.map((v,i)=>v+off*n[i]),e1,e2,n}; // off = parallel shift of the section along its normal (A)
 }
-function mapTerms(m,pr,type,dmin){
+// ---- live view: the density is computed ONCE as a 3D grid (FFT); sections are then cut out by interpolation ----
+function volTerms(m,pr,dmin){ // half-sphere reflections with phase; Fo and Fc amplitudes kept separately
   const T=new Map();
-  for(const u of pr.U){
-    if(u.d<dmin)continue;const Fo=pr.K*u.Fo;
-    const amp=type==='diff'?Fo-u.Fc:type.startsWith('fo')?Fo:u.Fc;
-    for(const o of m.ops){
-      let g=hRt(o.R,u.h).map(Math.round),p=u.phi-TP*dot(u.h,o.t);
+  for(const u of pr.U){if(u.d<dmin)continue;const fo=pr.K*u.Fo;
+    for(const o of m.ops){let g=hRt(o.R,u.h).map(Math.round),p=u.phi-TP*dot(u.h,o.t);
       const f=g.find(x=>x!==0);if(f===undefined)continue;if(f<0){g=g.map(x=>-x+0);p=-p;}
-      const key=g.join();if(!T.has(key))T.set(key,{g,amp,p});
-    }
-  }
+      const k=g.join();if(!T.has(k))T.set(k,{g,fo,fc:u.Fc,p});}}
   return[...T.values()];
 }
-async function computeMap(m,terms,fr,ext,step,onProg,c0=0){
-  const n=Math.round(2*ext/step)+1,gs=2*ext/(n-1),N=terms.length;
-  const fo=mv(m.Mi,fr.o),f1=mv(m.Mi,fr.e1),f2=mv(m.Mi,fr.e2);
-  const A=new Float64Array(N),Ph=new Float64Array(N),a=new Float64Array(N),p=new Float64Array(N),q=new Float64Array(N);
-  terms.forEach((t,i)=>{A[i]=t.amp;Ph[i]=t.p;a[i]=TP*dot(t.g,fo);p[i]=TP*dot(t.g,f1);q[i]=TP*dot(t.g,f2);});
-  const g=new Float32Array(n*n);
-  for(let j=0;j<n;j++){
-    const v=-ext+j*gs;
-    for(let i=0;i<n;i++){const u=-ext+i*gs;let s=0;
-      for(let k=0;k<N;k++)s+=A[k]*Math.cos(Ph[k]-a[k]-u*p[k]-v*q[k]);
-      g[j*n+i]=2*s/m.V+c0;} // c0 = F000/V for absolute maps
-    if(j%8===0){onProg&&onProg(j/n);await new Promise(r=>setTimeout(r));}
-  }
+function fftLine(re,im,n,cs,sn,rev){ // in-place radix-2 forward DFT, exp(-i...)
+  for(let i=0;i<n;i++){const j=rev[i];if(j>i){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t;}}
+  for(let len=2;len<=n;len<<=1){const h=len>>1,st=n/len;
+    for(let i=0;i<n;i+=len)for(let k=0;k<h;k++){const wr=cs[k*st],wi=-sn[k*st],a=i+k,b=a+h,xr=re[b]*wr-im[b]*wi,xi=re[b]*wi+im[b]*wr;
+      re[b]=re[a]-xr;im[b]=im[a]-xi;re[a]+=xr;im[a]+=xi;}}
+}
+// Fo + i*Fc are packed into one complex array; both densities are real, so one FFT gives rho_o (real) and rho_c (imaginary)
+function density3D(m,terms){
+  const hm=[0,0,0];for(const t of terms)for(let i=0;i<3;i++)hm[i]=Math.max(hm[i],Math.abs(t.g[i]));
+  const N=hm.map(h=>{let n=32;while(n<4*h+2&&n<256)n*=2;return n;}),[N1,N2,N3]=N,T=N1*N2*N3,re=new Float64Array(T),im=new Float64Array(T);
+  const ix=g=>((((g[2]%N3)+N3)%N3)*N2+(((g[1]%N2)+N2)%N2))*N1+(((g[0]%N1)+N1)%N1);
+  for(const t of terms){const c=Math.cos(t.p),s=Math.sin(t.p);let k=ix(t.g);
+    re[k]+=t.fo*c-t.fc*s;im[k]+=t.fo*s+t.fc*c;
+    k=ix(t.g.map(x=>-x));re[k]+=t.fo*c+t.fc*s;im[k]+=-t.fo*s+t.fc*c;} // Friedel partner: conjugates
+  for(const[ax,n,stride]of[[0,N1,1],[1,N2,N1],[2,N3,N1*N2]]){
+    const cs=new Float64Array(n/2),sn=new Float64Array(n/2),rev=new Uint32Array(n),bits=Math.log2(n);
+    for(let k=0;k<n/2;k++){cs[k]=Math.cos(TP*k/n);sn[k]=Math.sin(TP*k/n);}
+    for(let i=0;i<n;i++){let r=0;for(let j=0;j<bits;j++)if((i>>j)&1)r|=1<<(bits-1-j);rev[i]=r;}
+    const a=new Float64Array(n),b=new Float64Array(n);
+    for(let s0=0;s0<T;s0++){const c=ax===0?s0%N1:ax===1?Math.floor(s0/N1)%N2:Math.floor(s0/(N1*N2));if(c)continue;
+      for(let i=0;i<n;i++){a[i]=re[s0+i*stride];b[i]=im[s0+i*stride];}
+      fftLine(a,b,n,cs,sn,rev);
+      for(let i=0;i<n;i++){re[s0+i*stride]=a[i];im[s0+i*stride]=b[i];}}}
+  const fo=new Float32Array(T),fc=new Float32Array(T);for(let i=0;i<T;i++){fo[i]=re[i]/m.V;fc[i]=im[i]/m.V;}
+  return{N,fo,fc};
+}
+const wb=[new Float64Array(4),new Float64Array(4),new Float64Array(4)];
+function cubInto(t,w){const t2=t*t,t3=t2*t;w[0]=(-t3+2*t2-t)/2;w[1]=(3*t3-5*t2+2)/2;w[2]=(-3*t3+4*t2+t)/2;w[3]=(t3-t2)/2;} // Catmull-Rom weights
+function cub(A,ix,iy,iz,w0,w1,w2){let s=0;for(let c=0;c<4;c++)for(let d=0;d<4;d++){const r=iz[c]+iy[d],wy=w2[c]*w1[d];for(let a=0;a<4;a++)s+=wy*w0[a]*A[r+ix[a]];}return s;}
+function tri(A,x0,x1,y0,y1,z0,z1,fx,fy,fz){
+  const a=A[z0+y0+x0]*(1-fx)+A[z0+y0+x1]*fx,b=A[z0+y1+x0]*(1-fx)+A[z0+y1+x1]*fx,c=A[z1+y0+x0]*(1-fx)+A[z1+y0+x1]*fx,d=A[z1+y1+x0]*(1-fx)+A[z1+y1+x1]*fx;
+  return(a*(1-fy)+b*fy)*(1-fz)+(c*(1-fy)+d*fy)*fz;}
+// cut a section out of the 3D grid: tricubic when idle, trilinear (fast=true) while dragging; no per-pixel allocations
+function samplePlane(m,vol,fr,ext,step,type,c0=0,fast=false){
+  const n=Math.round(2*ext/step)+1,gs=2*ext/(n-1),[N1,N2,N3]=vol.N,g=new Float32Array(n*n),[w0,w1,w2]=wb,FO=vol.fo,FC=vol.fc;
+  const o=mv(m.Mi,fr.o),e1=mv(m.Mi,fr.e1),e2=mv(m.Mi,fr.e2),ix=new Int32Array(4),iy=new Int32Array(4),iz=new Int32Array(4);
+  const md=(a,b)=>{a%=b;return a<0?a+b:a;},dif=type==='diff',fo=type.startsWith('fo'),NN=N1*N2;
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){
+    const u=-ext+i*gs,v=-ext+j*gs,p0=(o[0]+u*e1[0]+v*e2[0])*N1,p1=(o[1]+u*e1[1]+v*e2[1])*N2,p2=(o[2]+u*e1[2]+v*e2[2])*N3;
+    const b0=Math.floor(p0),b1=Math.floor(p1),b2=Math.floor(p2);let val;
+    if(fast){const x0=md(b0,N1),x1=md(b0+1,N1),y0=md(b1,N2)*N1,y1=md(b1+1,N2)*N1,z0=md(b2,N3)*NN,z1=md(b2+1,N3)*NN,fx=p0-b0,fy=p1-b1,fz=p2-b2;
+      val=dif?tri(FO,x0,x1,y0,y1,z0,z1,fx,fy,fz)-tri(FC,x0,x1,y0,y1,z0,z1,fx,fy,fz):tri(fo?FO:FC,x0,x1,y0,y1,z0,z1,fx,fy,fz);}
+    else{cubInto(p0-b0,w0);cubInto(p1-b1,w1);cubInto(p2-b2,w2);
+      for(let a=0;a<4;a++){ix[a]=md(b0+a-1,N1);iy[a]=md(b1+a-1,N2)*N1;iz[a]=md(b2+a-1,N3)*NN;}
+      val=dif?cub(FO,ix,iy,iz,w0,w1,w2)-cub(FC,ix,iy,iz,w0,w1,w2):cub(fo?FO:FC,ix,iy,iz,w0,w1,w2);}
+    g[j*n+i]=val+c0;}
   return{g,n,gs};
+}
+// all contour levels k0..k1 (step cs) in one pass; segments are collected in 3 flat buffers (positive, negative, zero)
+// so that only three canvas strokes are needed: returns [{a:Float32Array,n}, ...]
+function contourAll(g,n,cs,k0,k1){
+  const B=[0,1,2].map(()=>({a:new Float32Array(4096),n:0})),P=new Float64Array(8);
+  for(let j=0;j<n-1;j++)for(let i=0;i<n-1;i++){
+    const a=g[j*n+i],b=g[j*n+i+1],c=g[(j+1)*n+i+1],d=g[(j+1)*n+i];
+    let lo=a,hi=a;if(b<lo)lo=b;if(b>hi)hi=b;if(c<lo)lo=c;if(c>hi)hi=c;if(d<lo)lo=d;if(d>hi)hi=d;
+    const ka=Math.max(k0,Math.ceil(lo/cs)),kb=Math.min(k1,Math.floor(hi/cs));
+    for(let k=ka;k<=kb;k++){const lv=k*cs;let q=0;
+      if((a>lv)!==(b>lv)){P[q++]=i+(lv-a)/(b-a);P[q++]=j;}
+      if((b>lv)!==(c>lv)){P[q++]=i+1;P[q++]=j+(lv-b)/(c-b);}
+      if((d>lv)!==(c>lv)){P[q++]=i+(lv-d)/(c-d);P[q++]=j+1;}
+      if((a>lv)!==(d>lv)){P[q++]=i;P[q++]=j+(lv-a)/(d-a);}
+      const t=B[k>0?0:k<0?1:2];
+      for(let r=0;r+3<q;r+=4){if(t.n+4>t.a.length){const u=new Float32Array(t.a.length*2);u.set(t.a);t.a=u;}
+        t.a[t.n++]=P[r];t.a[t.n++]=P[r+1];t.a[t.n++]=P[r+2];t.a[t.n++]=P[r+3];}}}
+  return B;
 }
 function contour(g,n,lv){
   const S=[];
@@ -151,12 +198,16 @@ function contour(g,n,lv){
   }
   return S;
 }
-function overlay(m,fr,ext,slab=0.4){ // atoms (incl. symmetry copies) within 0.4 A of the plane
-  const out=[];
-  for(const at of m.atoms)for(const o of m.ops)for(let tx=-1;tx<=1;tx++)for(let ty=-1;ty<=1;ty++)for(let tz=-1;tz<=1;tz++){
-    const x=[0,1,2].map(i=>dot(o.R[i],at.x)+o.t[i]+[tx,ty,tz][i]),c=mv(m.M,x),d=c.map((v,i)=>v-fr.o[i]);
-    const u=dot(d,fr.e1),v=dot(d,fr.e2);
-    if(Math.abs(dot(d,fr.n))<slab&&Math.abs(u)<ext&&Math.abs(v)<ext&&!out.some(z=>Math.hypot(z.u-u,z.v-v)<.05))out.push({u,v,el:at.el,c});
-  }
+function overlay(m,fr,ext,slab=0.4){ // atoms (symmetry copies + cell translations) near the section; follows the view, so panning stays populated
+  const out=[],seen=new Set(),R=ext+2,lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];
+  for(const su of[-R,R])for(const sv of[-R,R])for(const sn of[-slab,slab]){
+    const f=mv(m.Mi,[0,1,2].map(i=>fr.o[i]+su*fr.e1[i]+sv*fr.e2[i]+sn*fr.n[i]));
+    for(let i=0;i<3;i++){lo[i]=Math.min(lo[i],f[i]);hi[i]=Math.max(hi[i],f[i]);}}
+  for(const at of m.atoms)for(const o of m.ops){
+    const x0=[0,1,2].map(i=>dot(o.R[i],at.x)+o.t[i]);
+    for(let tx=Math.ceil(lo[0]-x0[0]);tx<=Math.floor(hi[0]-x0[0]);tx++)for(let ty=Math.ceil(lo[1]-x0[1]);ty<=Math.floor(hi[1]-x0[1]);ty++)for(let tz=Math.ceil(lo[2]-x0[2]);tz<=Math.floor(hi[2]-x0[2]);tz++){
+      const c=mv(m.M,[x0[0]+tx,x0[1]+ty,x0[2]+tz]),d=c.map((v,i)=>v-fr.o[i]),u=dot(d,fr.e1),v=dot(d,fr.e2);
+      if(Math.abs(dot(d,fr.n))>=slab||Math.abs(u)>=R||Math.abs(v)>=R)continue;
+      const key=Math.round(u*20)+','+Math.round(v*20);if(seen.has(key))continue;seen.add(key);out.push({u,v,el:at.el,c});}}
   return out;
 }

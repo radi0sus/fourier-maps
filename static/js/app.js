@@ -5,7 +5,7 @@ let model=null,prep=null,last=null,baseInfo='',fileBase='map';
 function hexRGB(s){s=s.trim().replace('#','');if(s.length===3)s=s.replace(/./g,'$&$&');return[0,2,4].map(i=>parseInt(s.slice(i,i+2),16));}
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 async function loadFile(f){
-  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;$('png').disabled=true;
+  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;
   try{
     $('info').textContent='Reading '+f.name+' ...';
     model=buildModel(parseCIF(await f.text()));
@@ -17,8 +17,9 @@ this tool: Rint = ${(100*prep.Rint).toFixed(2)} %, R1 = ${(100*prep.R1).toFixed(
     for(const id of['a1','a2','a3'])$(id).innerHTML=model.atoms.map(a=>`<option>${a.lab}</option>`).join('');
     baseInfo=$('info').textContent;
     model.atoms.filter(a=>a.el!=='H').slice(0,3).forEach((a,i)=>{$('a'+(i+1)).value=a.lab;}); // default plane: first three non-H atoms
-    $('go').disabled=false;
-  }catch(err){$('info').textContent='Error: '+err.message;$('go').disabled=true;}
+    $('info').textContent+='\nComputing 3D density ...';await new Promise(r=>setTimeout(r));
+    computeVolume();render();
+  }catch(err){$('info').textContent='Error: '+err.message;}
 }
 $('file').addEventListener('change',e=>loadFile(e.target.files[0]));
 const dz=$('drop');
@@ -29,19 +30,23 @@ dz.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
 function syncOut(){document.querySelectorAll('input[type=range]').forEach(r=>{const o=$(r.id+'Out');if(o)o.textContent=(+r.value).toFixed((r.step.split('.')[1]||'').length)+(r.dataset.u||'');});}
 document.querySelectorAll('input[type=range]').forEach(r=>r.addEventListener('input',syncOut));syncOut();
 $('type').addEventListener('change',()=>{$('cstep').value=$('type').value==='diff'?0.05:0.5;syncOut();});
-$('go').addEventListener('click',async()=>{
+// ---- live view: 3D density once per file / resolution limit, sections are cut out instantly ----
+let offc=null,vol=null,pending=false,dTimer=null,drag=false,quick=false,qt=null;const view={x:0,y:0};
+function computeVolume(){vol=density3D(model,volTerms(model,prep,+$('dmin').value||0));}
+function render(){
+  if(!vol)return;
   try{
-    $('go').disabled=true;
-    const ext=+$('ext').value,step=+$('gstep').value,cs=+$('cstep').value,type=$('type').value;
+    const fast=drag||quick,ext=4/(+$('zoom').value||1),step=Math.max(+$('gstep').value,2*(4/(+$('zoom').value||1))/((fast?121:241)-1)),cs=+$('cstep').value,type=$('type').value,F=f000(model);
     const fr=planeFrame(model,['a1','a2','a3'].map(i=>$(i).value),+$('off').value||0);
-    const terms=mapTerms(model,prep,type,+$('dmin').value||0);
-    const mp=await computeMap(model,terms,fr,ext,step,p=>{$('go').textContent=Math.round(p*100)+' %';},type.endsWith('_abs')?f000(model).v/model.V:0);
-    last=[mp,cs,ext,overlay(model,fr,ext,+$('slab').value||0.4),type];
-    const F=f000(model);$('png').disabled=false;
+    fr.o=fr.o.map((v,i)=>v+view.x*fr.e1[i]+view.y*fr.e2[i]); // pan: shifts the centre of the section within its plane
+    const mp=samplePlane(model,vol,fr,ext,step,type,type.endsWith('_abs')?F.v/model.V:0,fast);
+    last=[mp,cs,ext,overlay(model,fr,ext,+$('slab').value||0.4),type];$('png').disabled=false;
     $('info').textContent=baseInfo+'\n'+draw(...last)+(type.endsWith('_abs')?`\nF000 = ${F.v.toFixed(1)} e (${F.src}) -> +${(F.v/model.V).toFixed(3)} e/Å³ added`:'');
   }catch(err){$('info').textContent='Error: '+err.message;}
-  $('go').textContent='Calculate';$('go').disabled=false;
-});
+}
+const live=()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;render();});}};
+['a1','a2','a3','off','slab','zoom','gstep','cstep','type','showAtoms','showLegend','cm0','cm1'].forEach(id=>['input','change'].forEach(e=>$(id).addEventListener(e,live)));
+$('dmin').addEventListener('input',()=>{clearTimeout(dTimer);dTimer=setTimeout(()=>{if(!model)return;computeVolume();render();},150);});
 function draw(mp,cs,ext,atoms,type){
   const css=getComputedStyle(document.documentElement),fg=css.getPropertyValue('--fg'),bg=css.getPropertyValue('--bg'),mut=css.getPropertyValue('--mut');
   const W=cv.width,sx=i=>i/(mp.n-1)*W,sy=j=>W-j/(mp.n-1)*W,ux=u=>(u+ext)/(2*ext)*W,vy=v=>W-(v+ext)/(2*ext)*W;
@@ -49,18 +54,16 @@ function draw(mp,cs,ext,atoms,type){
   let mn=1e9,mx=-1e9;for(const x of mp.g){if(x<mn)mn=x;if(x>mx)mx=x;}
   const col=document.querySelector('input[name=cmode]:checked').value==='col',vm=Math.max(Math.abs(mn),Math.abs(mx))||1;
   if(col){ // shaded density: blue = positive, red = negative, background colour = zero
-    const n=mp.n,off=document.createElement('canvas');off.width=off.height=n;const o=off.getContext('2d'),im=o.createImageData(n,n),b=hexRGB(bg);
+    const n=mp.n;if(!offc||offc.width!==n){offc=document.createElement('canvas');offc.width=offc.height=n;}const off=offc,o=off.getContext('2d'),im=o.createImageData(n,n),b=hexRGB(bg);
     for(let j=0;j<n;j++)for(let i=0;i<n;i++){const t=mp.g[j*n+i]/vm,c=t>=0?[47,109,246]:[224,59,59],a=Math.min(1,Math.abs(t))**0.7,p=((n-1-j)*n+i)*4;
       for(let k=0;k<3;k++)im.data[p+k]=b[k]+(c[k]-b[k])*a;im.data[p+3]=255;}
     o.putImageData(im,0,0);ctx.imageSmoothingEnabled=true;const q=W/(2*(n-1));ctx.drawImage(off,0,0,n,n,-q,-q,W*n/(n-1),W*n/(n-1));
   }
   const k0=Math.max(Math.ceil(mn/cs),-40),k1=Math.min(Math.floor(mx/cs),40);
   ctx.strokeStyle=fg;ctx.lineWidth=1.3;ctx.globalAlpha=col?0.6:1;
-  for(let k=k0;k<=k1;k++){
-    ctx.setLineDash(k>0?[]:k<0?[6,4]:[1.5,3.5]);ctx.beginPath();
-    for(const s of contour(mp.g,mp.n,k*cs)){ctx.moveTo(sx(s[0]),sy(s[1]));ctx.lineTo(sx(s[2]),sy(s[3]));}
-    ctx.stroke();
-  }
+  const segs=contourAll(mp.g,mp.n,cs,k0,k1);
+  [[0,[]],[1,[6,4]],[2,[1.5,3.5]]].forEach(([t,dash])=>{const S=segs[t];if(!S.n)return;ctx.setLineDash(dash);ctx.beginPath();
+    for(let q=0;q<S.n;q+=4){ctx.moveTo(sx(S.a[q]),sy(S.a[q+1]));ctx.lineTo(sx(S.a[q+2]),sy(S.a[q+3]));}ctx.stroke();});
   ctx.globalAlpha=1;ctx.setLineDash([]);ctx.font='13px system-ui';ctx.textAlign='center';ctx.strokeStyle=mut;ctx.lineWidth=2.5;
   const at2=$('showAtoms').checked?atoms:[];
   for(let i=0;i<at2.length;i++)for(let j=i+1;j<at2.length;j++){const p=at2[i],q=at2[j];
@@ -84,10 +87,26 @@ function draw(mp,cs,ext,atoms,type){
   return `map range ${mn.toFixed(2)} … ${mx.toFixed(2)} e/Å³, contour step ${cs} (solid +, dashed −, dotted 0)`;
 }
 
-// options re-draw the last map without recalculating
-['showAtoms','showLegend','cm0','cm1'].forEach(id=>$(id).addEventListener('change',()=>{if(last)draw(...last);}));
-
 // PNG export of the canvas as displayed
 $('png').addEventListener('click',()=>{if(!last)return;
   cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${fileBase}_${last[4]}.png`;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);},'image/png');});
+
+// ---- pan (drag), zoom (wheel, around the pointer), reset (double-click) ----
+['a1','a2','a3'].forEach(id=>$(id).addEventListener('change',()=>{view.x=view.y=0;}));
+let pt=null;
+cv.addEventListener('pointerdown',e=>{if(!vol||e.button>0)return;pt={x:e.clientX,y:e.clientY};drag=true;cv.classList.add('drag');try{cv.setPointerCapture(e.pointerId);}catch(_){}});
+cv.addEventListener('pointermove',e=>{if(!pt)return;const r=cv.getBoundingClientRect();if(!r.width)return;const k=2*(4/(+$('zoom').value||1))/r.width;
+  view.x-=(e.clientX-pt.x)*k;view.y+=(e.clientY-pt.y)*k;pt={x:e.clientX,y:e.clientY};live();});
+const endDrag=()=>{if(!pt)return;pt=null;drag=false;cv.classList.remove('drag');live();};
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+cv.addEventListener('wheel',e=>{if(!vol)return;e.preventDefault();const r=cv.getBoundingClientRect();if(!r.width)return;
+  const z=$('zoom'),z0=+z.value,z1=Math.min(+z.max,Math.max(+z.min,z0*Math.exp(-e.deltaY*0.0015))),e0=4/z0,e1=4/z1;
+  const fx=(e.clientX-r.left)/r.width*2-1,fy=1-(e.clientY-r.top)/r.height*2; // pointer position in the view, -1..1
+  view.x+=fx*(e0-e1);view.y+=fy*(e0-e1);z.value=z1;syncOut();live();},{passive:false});
+cv.addEventListener('dblclick',()=>{view.x=view.y=0;$('zoom').value=1;syncOut();live();});
+
+// while a slider or the wheel is moving: cheap preview (coarser grid, trilinear), full quality 150 ms after the last change
+const quickMode=()=>{quick=true;clearTimeout(qt);qt=setTimeout(()=>{quick=false;live();},150);};
+['off','slab','zoom','gstep'].forEach(id=>$(id).addEventListener('input',quickMode));
+cv.addEventListener('wheel',quickMode,{passive:true});
