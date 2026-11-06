@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Fourier maps</title>
+<html lang="en"><head><meta charset="utf-8"><title>Fourier &amp; Patterson maps</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="static/css/style.css"></head>
 <body><main>
-<header><h1>Fourier maps</h1>
+<header><h1>Fourier &amp; Patterson maps</h1>
 <p class="sub">Fourier contour maps (Fo&minus;Fc, Fo, Fc) from a CIF with reflection data &middot; runs entirely in your browser</p></header>
 
 <label id="drop" class="drop tip-below" data-tip="Drop a CIF here or click to choose one. It needs the model (cell, symmetry, atoms, ADPs) plus reflection data (_shelx_hkl_file, _refln or _diffrn_refln).">
@@ -13,6 +13,8 @@
  <span id="dzname" class="dz-name"></span>
 </label>
 
+<div class="tabs" role="tablist"><button class="tab on" data-tab="fourier" data-tip="Fo/Fc/difference Fourier contour maps in the plane of three atoms.">Fourier map</button><button class="tab" data-tab="patterson" data-tip="Patterson map P(u,v,w) from |F|² (no phases): sections u, v or w = const, with Harker lines and planes.">Patterson map</button></div>
+<div id="tab-fourier">
 <div class="layout">
 <aside class="panel">
 <section class="card"><h2>Plane</h2>
@@ -45,7 +47,48 @@
 <section class="card" data-tip="Merging and refinement statistics of this tool, next to the values stored in the CIF (Rint, R1, wR2, unique reflections)."><h2>Log</h2><div id="info" class="info">Load a CIF to start.</div></section>
 </div>
 </div>
+</div>
+<div id="tab-patterson" hidden>
+<div class="layout">
+<aside class="panel">
+<section class="card"><h2>Section</h2>
+  <div class="seg" data-tip="Which Patterson coordinate is kept constant. u = const shows the v/w plane, v = const the u/w plane, w = const the u/v plane.">
+   <input type="radio" name="paxis" id="pax0" value="0"><label for="pax0">u = const</label><input type="radio" name="paxis" id="pax1" value="1" checked><label for="pax1">v = const</label><input type="radio" name="paxis" id="pax2" value="2"><label for="pax2">w = const</label>
+  </div>
+  <label class="sl" data-tip="Position of the section along the chosen axis, in fractional coordinates (0 … 1, periodic)."><span>Position <output id="pposOut"></output></span><input id="ppos" type="range" min="0" max="1" step="0.005" value="0.5" data-u=""></label>
+  <div class="chips"><button class="chip" data-pos="0">0</button><button class="chip" data-pos="0.25">¼</button><button class="chip" data-pos="0.3333">⅓</button><button class="chip" data-pos="0.5">½</button><button class="chip" data-pos="0.6667">⅔</button><button class="chip" data-pos="0.75">¾</button></div>
+</section>
+<section class="card"><h2>Harker elements</h2>
+  <div class="hint">Click an element to jump to a section that shows it. Hover for the symmetry operator.</div>
+  <div id="hkList" class="chips"></div>
+  <div class="opts"><label class="switch" data-tip="Draw the Harker planes (orange, dashed) and Harker lines / points (green) that fall into the current section. A thick orange frame means the whole section is a Harker section."><input type="checkbox" id="pshowH" checked><span>Show Harker lines &amp; planes</span></label></div>
+</section>
+<section class="card"><h2>Map</h2>
+  <div data-tip="Fo²: Patterson from the observed intensities (scaled to Fc). Fc²: from the model. Fo²−Fc²: difference Patterson."><select id="pmap"><option value="fo">Fo² (observed)</option><option value="fc">Fc² (calculated)</option><option value="diff">Fo² − Fc² (difference)</option></select></div>
+  <div style="margin-top:.5rem" data-tip="|F|²: classical Patterson, origin peak = 100 %. Sharpened: coefficients E²−1 (Wilson-normalised), point-atom-like peaks, no origin peak; map in units of its rms (σ)."><select id="pcoef"><option value="plain">Coefficients |F|² (origin = 100 %)</option><option value="sharp">Sharpened E² − 1 (units of σ)</option></select></div>
+  <label class="sl" data-tip="Density step between neighbouring contour lines. Solid = positive, dashed = negative, dotted = zero."><span>Contour step <output id="pcstepOut"></output></span><input id="pcstep" type="range" min="0.1" max="10" step="0.1" value="3" data-u=" %"></label>
+  <label class="sl" data-tip="Blue/red mode only: density at which the colours are fully saturated. Lower it to see weak features next to the strong origin peak."><span>Colour scale ± <output id="psatOut"></output></span><input id="psat" type="range" min="1" max="100" step="1" value="25" data-u=" %"></label>
+  <label class="sl" data-tip="Leaves out reflections with a d-spacing below this value. 0 = use all."><span>Resolution limit d<sub>min</sub> <output id="pdminOut"></output></span><input id="pdmin" type="range" min="0" max="2" step="0.05" value="0" data-u=" &Aring;"></label>
+</section>
+<section class="card"><h2>View</h2>
+  <div class="hint">Drag to pan &middot; wheel to zoom &middot; double-click to reset</div>
+  <label class="sl"><span>Zoom <output id="pzoomOut"></output></span><input id="pzoom" type="range" min="0.5" max="6" step="0.05" value="1" data-u="&times;"></label>
+  <label class="sl" data-tip="Distance between the points where the map is evaluated."><span>Grid spacing <output id="pgstepOut"></output></span><input id="pgstep" type="range" min="0.03" max="0.2" step="0.01" value="0.06" data-u=" &Aring;"></label>
+  <div class="opts">
+   <label class="switch"><input type="checkbox" id="pshowLegend" checked><span>Legend</span></label>
+   <div class="seg"><input type="radio" name="pcmode" id="pcm0" checked><label for="pcm0">Black / white</label><input type="radio" name="pcmode" id="pcm1"><label for="pcm1">Blue / red</label></div>
+   <button id="ppng" class="ghost" disabled>Save PNG</button>
+  </div>
+</section>
+</aside>
+<div class="stage">
+<canvas id="cvp" width="800" height="800"></canvas>
+<div id="preadout" class="hint ro"></div>
+<section class="card"><h2>Log</h2><div id="pinfo" class="info">Load a CIF to start.</div></section>
+</div>
+</div>
+</div>
 </main>
 <script src="static/js/cif.js"></script><script src="static/js/hkl-parser.js"></script><script src="static/js/scattering-factors.js"></script>
-<script src="static/js/map.js"></script><script src="static/js/app.js"></script>
+<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/patterson.js"></script>
 </body></html>

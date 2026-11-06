@@ -5,7 +5,7 @@ let model=null,prep=null,last=null,baseInfo='',fileBase='map';
 function hexRGB(s){s=s.trim().replace('#','');if(s.length===3)s=s.replace(/./g,'$&$&');return[0,2,4].map(i=>parseInt(s.slice(i,i+2),16));}
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 async function loadFile(f){
-  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;
+  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;if(window.patReset)patReset();
   try{
     $('info').textContent='Reading '+f.name+' ...';
     model=buildModel(parseCIF(await f.text()));
@@ -18,7 +18,7 @@ this tool: Rint = ${(100*prep.Rint).toFixed(2)} %, R1 = ${(100*prep.R1).toFixed(
     baseInfo=$('info').textContent;
     model.atoms.filter(a=>a.el!=='H').slice(0,3).forEach((a,i)=>{$('a'+(i+1)).value=a.lab;}); // default plane: first three non-H atoms
     $('info').textContent+='\nComputing 3D density ...';await new Promise(r=>setTimeout(r));
-    computeVolume();render();
+    computeVolume();render();if(window.patReady)patReady();
   }catch(err){$('info').textContent='Error: '+err.message;}
 }
 $('file').addEventListener('change',e=>loadFile(e.target.files[0]));

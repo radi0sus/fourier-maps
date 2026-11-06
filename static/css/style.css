@@ -64,3 +64,17 @@ button.ghost:hover:not(:disabled){border-color:var(--acc);color:var(--acc);filte
 .panel,.stage{display:flex;flex-direction:column;gap:1rem;min-width:0}
 .panel .grid2{grid-template-columns:1fr;gap:0}
 @media(max-width:960px){.layout{grid-template-columns:1fr}.stage{order:-1}}
+
+/* tabs, chips, patterson tab */
+[hidden]{display:none!important}
+.tabs{display:flex;gap:.4rem;border-bottom:1px solid var(--bd)}
+button.tab{background:none;box-shadow:none;color:var(--mut);border-radius:10px 10px 0 0;padding:.55rem 1.1rem;border-bottom:2px solid transparent;margin-bottom:-1px}
+button.tab:hover:not(:disabled){filter:none;color:var(--fg)}
+button.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.6rem}
+button.chip{background:var(--bg);color:var(--fg);border:1px solid var(--bd);box-shadow:none;padding:.25rem .6rem;border-radius:8px;font-size:.85rem;font-weight:600}
+button.chip:hover:not(:disabled){border-color:var(--acc);color:var(--acc);filter:none}
+button.chip.off{opacity:.55;cursor:default}
+#cvp{cursor:grab;touch-action:none}#cvp.drag{cursor:grabbing}
+.ro{min-height:1.4em;font-variant-numeric:tabular-nums}
+.card>.hint+.chips{margin-top:.3rem}

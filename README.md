@@ -1,13 +1,13 @@
 # Fourier maps
 
-Browser tool for Fourier contour maps (Fo-Fc, Fo, Fc) from a CIF with reflection data.
+Browser tool for Fourier contour maps (Fo-Fc, Fo, Fc) and Patterson maps from a CIF with reflection data.
 No server, no build step: unzip, keep the folder structure, open `index.html`.
 
 ```
 fourier-maps/
   index.html
   static/css/style.css
-  static/js/{cif,hkl-parser,scattering-factors,map,app}.js
+  static/js/{cif,hkl-parser,scattering-factors,map,app,patterson}.js
 ```
 
 Reads `_shelx_hkl_file`, `_refln` and `_diffrn_refln` data. Fc is computed from the model in the CIF
@@ -21,3 +21,12 @@ resolution limit recomputes the 3D grid.
 Mouse: drag the map to pan, wheel to zoom around the pointer, double-click to reset the view.
 
 Performance: while dragging or moving a slider a cheap preview is drawn (coarser grid, trilinear); the full-quality map follows 150 ms after the last change. Atoms are generated for the visible region only, so panning never runs out of atoms.
+
+## Patterson tab
+
+Second tab next to the Fourier map. P(u,v,w) = 1/V · Σ |F|² cos 2π(hu+kv+lw) (F000 left out), computed once as a 3D grid like the Fourier density.
+- Coefficients: |F|² (origin peak = 100 %) or sharpened E²−1 (Wilson-normalised, units of σ); maps from Fo², Fc² or Fo²−Fc².
+- Sections u, v or w = const at any position (0 … 1); the cursor shows u v w and the map value; the log lists the highest peaks of the section.
+- Harker elements are derived from the symmetry operators of the CIF (rotation/screw axes → Harker planes, mirror/glide planes → Harker lines)
+  and drawn into the section (orange dashed = plane, green = line / point; thick orange frame = the section itself is a Harker section).
+  The element buttons jump to a matching section (e.g. P2₁/c: v = ½ plane and [0, v, ½] line).
