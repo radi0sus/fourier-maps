@@ -4,7 +4,8 @@
 'use strict';
 const $=id=>document.getElementById(id),cvp=$('cvp'),cx=cvp.getContext('2d');
 let pvol=null,pscale=1,hk=[],last=null,active=false,pq=false,pdr=false,pt=null,pqt=null,pdT=null,ppend=false,poff=null;
-const pv={x:0,y:0},DEF={plain:{cs:3,sat:25,u:' %'},sharp:{cs:1,sat:6,u:' σ'}};
+const pv={x:0,y:0},DEF={plain:{cs:3,sat:25,u:' %'},sharp:{cs:1,sat:6,u:' σ'},shelx:{cs:30,sat:250,u:''}};
+const modeKey=()=>$('pshelx').checked?'shelx':$('pcoef').value==='sharp'?'sharp':'plain';
 
 // ---------- Harker elements from the symmetry operators ----------
 const gcd=(a,b)=>b?gcd(b,a%b):a;
@@ -99,11 +100,26 @@ function patTerms(dmin,sharp){ // |F|^2 (or E^2-1) as real coefficients, phase 0
       const k=g.join();if(!T.has(k))T.set(k,{g,fo:co,fc:cc,p:0});}}
   return[...T.values()];
 }
+// highest value of the volume as the (tricubic) section display sees it: grid maximum, refined between grid points
+function refinedMax(vol){
+  const A=vol.fo,[N1,N2,N3]=vol.N,NN=N1*N2;let bi=0,bm=-Infinity;
+  for(let i=0;i<A.length;i++)if(A[i]>bm){bm=A[i];bi=i;}
+  const cx=bi%N1,cy=Math.floor(bi/N1)%N2,cz=Math.floor(bi/NN),md=(a,b)=>((a%b)+b)%b;
+  const [w0,w1,w2]=[new Float64Array(4),new Float64Array(4),new Float64Array(4)],ix=new Int32Array(4),iy=new Int32Array(4),iz=new Int32Array(4);
+  let best=bm;
+  for(let a=-10;a<=10;a++)for(let b=-10;b<=10;b++)for(let c=-10;c<=10;c++){
+    const p0=cx+a/10,p1=cy+b/10,p2=cz+c/10,b0=Math.floor(p0),b1=Math.floor(p1),b2=Math.floor(p2);
+    cubInto(p0-b0,w0);cubInto(p1-b1,w1);cubInto(p2-b2,w2);
+    for(let k=0;k<4;k++){ix[k]=md(b0+k-1,N1);iy[k]=md(b1+k-1,N2)*N1;iz[k]=md(b2+k-1,N3)*NN;}
+    const v=cub(A,ix,iy,iz,w0,w1,w2);if(v>best)best=v;}
+  return best;
+}
 function computeP(){
   const sharp=$('pcoef').value==='sharp';if(sharp&&!prep.wil)wilson();
   pvol=density3D(model,patTerms(+$('pdmin').value||0,sharp));
   const g=pvol.fo;
-  if(sharp){let s=0,s2=0;for(let i=0;i<g.length;i++){s+=g[i];s2+=g[i]*g[i];}const mu=s/g.length;pscale=1/(Math.sqrt(s2/g.length-mu*mu)||1);}
+  if($('pshelx').checked){const m=refinedMax(pvol);pscale=m>0?999/m:1;} // SHELX: strongest peak = 999
+  else if(sharp){let s=0,s2=0;for(let i=0;i<g.length;i++){s+=g[i];s2+=g[i]*g[i];}const mu=s/g.length;pscale=1/(Math.sqrt(s2/g.length-mu*mu)||1);}
   else pscale=g[0]>0?100/g[0]:1; // origin peak = 100
 }
 
@@ -128,7 +144,7 @@ function prender(){
       if(w.length)s+=`\nthis section is a Harker section: ${w.join(', ')}`;
       if(l.length)s+=`\nHarker elements in this section: ${l.join(', ')}`;
       if(!w.length&&!l.length)s+='\nno Harker element lies in this section';}
-    if(!fast){const P=peaks(mp,ext,sec);s+=P.length?'\npeaks (u v w, height):\n'+P.map(p=>`  ${p.f.map(x=>x.toFixed(3)).join('  ')}   ${p.v.toFixed(1)}${DEF[$('pcoef').value==='sharp'?'sharp':'plain'].u}`).join('\n'):'\nno peaks in this section';}
+    if(!fast){const P=peaks(mp,ext,sec);s+=P.length?'\npeaks (u v w, height):\n'+P.map(p=>`  ${p.f.map(x=>x.toFixed(3)).join('  ')}   ${p.v.toFixed(1)}${DEF[modeKey()].u}${p.o?'  (origin)':''}`).join('\n'):'\nno peaks in this section';}
     $('pinfo').textContent=s;
   }catch(err){$('pinfo').textContent='Error: '+err.message;}
 }
@@ -137,13 +153,13 @@ function peaks(mp,ext,sec){
   for(let j=1;j<n-1;j++)for(let i=1;i<n-1;i++){const v=g[j*n+i];if(v<=0)continue;
     if(v>g[j*n+i-1]&&v>=g[j*n+i+1]&&v>g[(j-1)*n+i]&&v>=g[(j+1)*n+i]&&v>g[(j-1)*n+i-1]&&v>=g[(j+1)*n+i+1]&&v>g[(j-1)*n+i+1]&&v>=g[(j+1)*n+i-1]){
       const X=-ext+i*gs,Y=-ext+j*gs,f=mv(model.Mi,[0,1,2].map(k=>fr.o[k]+X*fr.e1[k]+Y*fr.e2[k])).map(x=>{const r=x-Math.floor(x);return r>1-1e-6?0:r;});
-      const dd=mv(model.M,f.map(x=>x-Math.round(x)));if(Math.hypot(...dd)<0.8)continue; // origin peak
-      if(out.some(o=>o.f.every((x,k)=>{const d=Math.abs(x-f[k]);return Math.min(d,1-d)<0.02;})))continue;out.push({f,v});}}
+      const dd=mv(model.M,f.map(x=>x-Math.round(x)));const dist=Math.hypot(...dd);if(dist>=0.3&&dist<0.8)continue; // ripples next to the origin peak; the origin peak itself (dist<0.3) is listed
+      if(out.some(o=>o.f.every((x,k)=>{const d=Math.abs(x-f[k]);return Math.min(d,1-d)<0.02;})))continue;out.push({f,v,o:dist<0.3});}}
   return out.sort((a,b)=>b.v-a.v).slice(0,8);
 }
 function pdraw(mp,cs,ext,sec){
   const css=getComputedStyle(document.documentElement),fg=css.getPropertyValue('--fg'),bg=css.getPropertyValue('--bg'),mut=css.getPropertyValue('--mut');
-  const W=cvp.width,n=mp.n,sx=i=>i/(n-1)*W,sy=j=>W-j/(n-1)*W,fr=sec.fr,unitS=$('pcoef').value==='sharp'?' σ':' % of origin';
+  const W=cvp.width,n=mp.n,sx=i=>i/(n-1)*W,sy=j=>W-j/(n-1)*W,fr=sec.fr,unitS=({shelx:'',sharp:' σ',plain:' % of origin'})[modeKey()];
   const px=f=>{const c=mv(model.M,f),d=[c[0]-fr.o[0],c[1]-fr.o[1],c[2]-fr.o[2]];return[(dot(d,fr.e1)+ext)/(2*ext)*W,W-(dot(d,fr.e2)+ext)/(2*ext)*W];};
   const F=(p,q)=>{const f=[0,0,0];f[sec.a]=sec.s;f[sec.pi]=p;f[sec.qi]=q;return px(f);};
   cx.setLineDash([]);cx.globalAlpha=1;cx.fillStyle=bg;cx.fillRect(0,0,W,W);
@@ -207,7 +223,8 @@ function ensure(){
   if(!pvol){$('pinfo').textContent='Computing Patterson map ...';setTimeout(()=>{computeP();prender();},20);}else prender();
 }
 function setMode(){ // sensible defaults per coefficient type
-  const d=DEF[$('pcoef').value==='sharp'?'sharp':'plain'];
+  const d=DEF[modeKey()],sh=modeKey()==='shelx';
+  $('pcstep').max=sh?300:10;$('pcstep').step=sh?1:0.1;$('psat').max=sh?999:100;
   $('pcstep').value=d.cs;$('pcstep').dataset.u=d.u;$('psat').value=d.sat;$('psat').dataset.u=d.u;syncOut();
 }
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
@@ -215,7 +232,7 @@ document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
   $('tab-fourier').hidden=b.dataset.tab!=='fourier';$('tab-patterson').hidden=b.dataset.tab!=='patterson';
   active=b.dataset.tab==='patterson';if(active)ensure();
 }));
-['pcoef'].forEach(id=>$(id).addEventListener('change',()=>{setMode();pvol=null;pv.x=pv.y=0;recompute();}));
+['pcoef','pshelx'].forEach(id=>$(id).addEventListener('change',()=>{setMode();pvol=null;pv.x=pv.y=0;recompute();}));
 $('pdmin').addEventListener('input',recompute);
 ['pmap','ppos','pzoom','pgstep','pcstep','psat','pshowH','pshowLegend','pcm0','pcm1','pax0','pax1','pax2'].forEach(id=>['input','change'].forEach(e=>$(id).addEventListener(e,live)));
 ['ppos','pzoom','pgstep'].forEach(id=>$(id).addEventListener('input',quick));
@@ -231,7 +248,7 @@ cvp.addEventListener('pointermove',e=>{
   const{mp,ext,sec}=last,X=-ext+(e.clientX-r.left)/r.width*2*ext,Y=ext-(e.clientY-r.top)/r.height*2*ext,fr=sec.fr;
   const f=mv(model.Mi,[0,1,2].map(k=>fr.o[k]+X*fr.e1[k]+Y*fr.e2[k])).map(x=>x-Math.floor(x)),i=Math.round((X+ext)/mp.gs),j=Math.round((Y+ext)/mp.gs);
   const v=(i>=0&&j>=0&&i<mp.n&&j<mp.n)?mp.g[j*mp.n+i]:NaN;
-  $('preadout').textContent=`u v w = ${f.map(x=>x.toFixed(3)).join('  ')}   |   P = ${isNaN(v)?'–':v.toFixed(1)}${$('pcoef').value==='sharp'?' σ':' %'}`;});
+  $('preadout').textContent=`u v w = ${f.map(x=>x.toFixed(3)).join('  ')}   |   P = ${isNaN(v)?'–':v.toFixed(1)}${DEF[modeKey()].u}`;});
 const endDrag=()=>{if(!pt)return;pt=null;pdr=false;cvp.classList.remove('drag');live();};
 cvp.addEventListener('pointerup',endDrag);cvp.addEventListener('pointercancel',endDrag);
 cvp.addEventListener('wheel',e=>{if(!pvol||!last)return;e.preventDefault();const r=cvp.getBoundingClientRect();if(!r.width)return;
