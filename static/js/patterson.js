@@ -4,8 +4,8 @@
 'use strict';
 const $=id=>document.getElementById(id),cvp=$('cvp'),cx=cvp.getContext('2d');
 let pvol=null,pscale=1,hk=[],last=null,active=false,pq=false,pdr=false,pt=null,pqt=null,pdT=null,ppend=false,poff=null;
-const pv={x:0,y:0},DEF={plain:{cs:3,sat:25,u:' %'},sharp:{cs:1,sat:6,u:' σ'},shelx:{cs:30,sat:250,u:''}};
-const modeKey=()=>$('pshelx').checked?'shelx':$('pcoef').value==='sharp'?'sharp':'plain';
+const pv={x:0,y:0},DEF={pct:{cs:3,sat:25,u:' %',cmax:10,cstp:0.1,smax:100},sigma:{cs:1,sat:6,u:' σ',cmax:10,cstp:0.1,smax:100},shelx:{cs:30,sat:250,u:'',cmax:300,cstp:1,smax:999}}; // per scale: contour defaults, slider ranges
+const modeKey=()=>$('pscl').value; // scale: pct | sigma | shelx
 
 // ---------- Harker elements from the symmetry operators ----------
 const gcd=(a,b)=>b?gcd(b,a%b):a;
@@ -93,9 +93,9 @@ function wilson(){
   for(const u of U)u.nrm=Math.exp(a+sl*u.s2)*u.S;
   prep.wil={a,B:-sl/2};
 }
-function patTerms(dmin,sharp){ // |F|^2 (or E^2-1) as real coefficients, phase 0, F000 left out
+function patTerms(dmin,sharp,keepOrigin){ // |F|^2 (or E^2-1; E^2 with keepOrigin, so the origin peak stays) as real coefficients, phase 0, F000 left out
   const T=new Map(),K2=prep.K*prep.K;
-  for(const u of prep.U){if(u.d<dmin)continue;let co=u.I*K2,cc=u.Fc2;if(sharp){co=co/u.nrm-1;cc=cc/u.nrm-1;}
+  for(const u of prep.U){if(u.d<dmin)continue;let co=u.I*K2,cc=u.Fc2;if(sharp){const m=keepOrigin?0:1;co=co/u.nrm-m;cc=cc/u.nrm-m;}
     for(const o of model.ops){let g=hRt(o.R,u.h).map(Math.round);const f=g.find(x=>x!==0);if(f===undefined)continue;if(f<0)g=g.map(x=>-x+0);
       const k=g.join();if(!T.has(k))T.set(k,{g,fo:co,fc:cc,p:0});}}
   return[...T.values()];
@@ -114,13 +114,25 @@ function refinedMax(vol){
     const v=cub(A,ix,iy,iz,w0,w1,w2);if(v>best)best=v;}
   return best;
 }
+// rms (about the mean) of the 3D map, leaving out the region within 1 Å of a lattice point (origin peak), like SHELXS
+function rmsNoOrigin(vol){
+  const [N1,N2,N3]=vol.N,A=vol.fo,M=model.M,R2=1,fr=(i,N)=>{const x=i/N;return x-Math.round(x);};
+  let s0=0,s2=0,n=0;
+  for(let k=0;k<N3;k++){const z=fr(k,N3);
+    for(let j=0;j<N2;j++){const y=fr(j,N2),bx=[M[0][1]*y+M[0][2]*z,M[1][1]*y+M[1][2]*z,M[2][1]*y+M[2][2]*z],o=(k*N2+j)*N1;
+      for(let i=0;i<N1;i++){const x=fr(i,N1),c0=M[0][0]*x+bx[0],c1=M[1][0]*x+bx[1],c2=M[2][0]*x+bx[2];
+        if(c0*c0+c1*c1+c2*c2<R2)continue;const v=A[o+i];s0+=v;s2+=v*v;n++;}}}
+  const mu=s0/n;return Math.sqrt(s2/n-mu*mu)||1;
+}
+function calcScale(){ // scale factor of the chosen unit; the map itself is not recomputed
+  const sc=$('pscl').value,g=pvol.fo;
+  if(sc==='sigma')pscale=1/rmsNoOrigin(pvol);
+  else{const m=refinedMax(pvol);pscale=m>0?(sc==='shelx'?999:100)/m:1;} // strongest peak (the origin peak, unless it was removed) = 999 or 100 %
+}
 function computeP(){
-  const sharp=$('pcoef').value==='sharp';if(sharp&&!prep.wil)wilson();
-  pvol=density3D(model,patTerms(+$('pdmin').value||0,sharp));
-  const g=pvol.fo;
-  if($('pshelx').checked){const m=refinedMax(pvol);pscale=m>0?999/m:1;} // SHELX: strongest peak = 999
-  else if(sharp){let s=0,s2=0;for(let i=0;i<g.length;i++){s+=g[i];s2+=g[i]*g[i];}const mu=s/g.length;pscale=1/(Math.sqrt(s2/g.length-mu*mu)||1);}
-  else pscale=g[0]>0?100/g[0]:1; // origin peak = 100
+  const coef=$('pcoef').value,sharp=coef!=='plain';if(sharp&&!prep.wil)wilson();
+  pvol=density3D(model,patTerms(+$('pdmin').value||0,sharp,coef==='e2')); // e2: E² (origin peak kept); sharp: E²−1 (origin peak removed)
+  calcScale();
 }
 
 // ---------- section, rendering ----------
@@ -159,7 +171,7 @@ function peaks(mp,ext,sec){
 }
 function pdraw(mp,cs,ext,sec){
   const css=getComputedStyle(document.documentElement),fg=css.getPropertyValue('--fg'),bg=css.getPropertyValue('--bg'),mut=css.getPropertyValue('--mut');
-  const W=cvp.width,n=mp.n,sx=i=>i/(n-1)*W,sy=j=>W-j/(n-1)*W,fr=sec.fr,unitS=({shelx:'',sharp:' σ',plain:' % of origin'})[modeKey()];
+  const W=cvp.width,n=mp.n,sx=i=>i/(n-1)*W,sy=j=>W-j/(n-1)*W,fr=sec.fr,unitS=({shelx:'',sigma:' σ',pct:' % of max'})[modeKey()];
   const px=f=>{const c=mv(model.M,f),d=[c[0]-fr.o[0],c[1]-fr.o[1],c[2]-fr.o[2]];return[(dot(d,fr.e1)+ext)/(2*ext)*W,W-(dot(d,fr.e2)+ext)/(2*ext)*W];};
   const F=(p,q)=>{const f=[0,0,0];f[sec.a]=sec.s;f[sec.pi]=p;f[sec.qi]=q;return px(f);};
   cx.setLineDash([]);cx.globalAlpha=1;cx.fillStyle=bg;cx.fillRect(0,0,W,W);
@@ -223,8 +235,8 @@ function ensure(){
   if(!pvol){$('pinfo').textContent='Computing Patterson map ...';setTimeout(()=>{computeP();prender();},20);}else prender();
 }
 function setMode(){ // sensible defaults per coefficient type
-  const d=DEF[modeKey()],sh=modeKey()==='shelx';
-  $('pcstep').max=sh?300:10;$('pcstep').step=sh?1:0.1;$('psat').max=sh?999:100;
+  const d=DEF[modeKey()];
+  $('pcstep').max=d.cmax;$('pcstep').step=d.cstp;$('psat').max=d.smax;
   $('pcstep').value=d.cs;$('pcstep').dataset.u=d.u;$('psat').value=d.sat;$('psat').dataset.u=d.u;syncOut();
 }
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
@@ -232,7 +244,8 @@ document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
   $('tab-fourier').hidden=b.dataset.tab!=='fourier';$('tab-patterson').hidden=b.dataset.tab!=='patterson';
   active=b.dataset.tab==='patterson';if(active)ensure();
 }));
-['pcoef','pshelx'].forEach(id=>$(id).addEventListener('change',()=>{setMode();pvol=null;pv.x=pv.y=0;recompute();}));
+$('pcoef').addEventListener('change',()=>{pvol=null;pv.x=pv.y=0;recompute();});
+$('pscl').addEventListener('change',()=>{setMode();if(pvol){calcScale();live();}}); // only the scale changes: no new FFT
 $('pdmin').addEventListener('input',recompute);
 ['pmap','ppos','pzoom','pgstep','pcstep','psat','pshowH','pshowLegend','pcm0','pcm1','pax0','pax1','pax2'].forEach(id=>['input','change'].forEach(e=>$(id).addEventListener(e,live)));
 ['ppos','pzoom','pgstep'].forEach(id=>$(id).addEventListener('input',quick));
