@@ -121,7 +121,7 @@ function prender(){
     const fr={o:sec.fr.o.map((v,i)=>v+pv.x*sec.fr.e1[i]+pv.y*sec.fr.e2[i]),e1:sec.fr.e1,e2:sec.fr.e2,n:sec.fr.n};
     const mp=samplePlane(model,pvol,fr,ext,step,$('pmap').value,0,fast);
     for(let i=0;i<mp.g.length;i++)mp.g[i]*=pscale;
-    sec.fr=fr;last={mp,ext,sec};$('ppng').disabled=false;
+    sec.fr=fr;last={mp,ext,sec};$('ppng').disabled=false;$('pcpng').disabled=false;
     const txt=pdraw(mp,cs,ext,sec),H=$('pshowH').checked?hInSec(sec):null;
     let s=`section ${'uvw'[sec.a]} = ${sec.s.toFixed(3)}   ·   ${txt}`;
     if(H){const w=H.whole.map(e=>e.label),l=[...new Set([...H.lines.map(x=>x.el.label),...H.pts.map(x=>x.el.label)])];
@@ -241,8 +241,10 @@ cvp.addEventListener('dblclick',()=>{pv.x=pv.y=0;$('pzoom').value=1;syncOut();li
 $('ppng').addEventListener('click',()=>{if(!last)return;cvp.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);
   a.download=`${fileBase}_patterson_${'uvw'[last.sec.a]}${last.sec.s.toFixed(3)}.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);},'image/png');});
 
+$('pcpng').addEventListener('click',()=>{if(last)copyCanvasPNG(cvp,$('pcpng'));});
+
 // hooks called from app.js
-window.patReset=()=>{pvol=null;last=null;hk=[];pv.x=pv.y=0;$('ppng').disabled=true;$('hkList').textContent='';$('preadout').textContent='';};
+window.patReset=()=>{pvol=null;last=null;hk=[];pv.x=pv.y=0;$('ppng').disabled=true;$('pcpng').disabled=true;$('hkList').textContent='';$('preadout').textContent='';};
 window.patReady=()=>{
   hk=harker(model);const L=$('hkList');L.textContent='';
   hk.forEach((el,i)=>{const b=document.createElement('button');b.className='chip'+(el.align?'':' off');b.dataset.i=i;b.dataset.tip=el.tip+(el.align?'':' (not axis-parallel: drawn as overlay only)');

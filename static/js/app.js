@@ -5,7 +5,7 @@ let model=null,prep=null,last=null,baseInfo='',fileBase='map';
 function hexRGB(s){s=s.trim().replace('#','');if(s.length===3)s=s.replace(/./g,'$&$&');return[0,2,4].map(i=>parseInt(s.slice(i,i+2),16));}
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 async function loadFile(f){
-  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;if(window.patReset)patReset();
+  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();
   try{
     $('info').textContent='Reading '+f.name+' ...';
     model=buildModel(parseCIF(await f.text()));
@@ -40,7 +40,7 @@ function render(){
     const fr=planeFrame(model,['a1','a2','a3'].map(i=>$(i).value),+$('off').value||0);
     fr.o=fr.o.map((v,i)=>v+view.x*fr.e1[i]+view.y*fr.e2[i]); // pan: shifts the centre of the section within its plane
     const mp=samplePlane(model,vol,fr,ext,step,type,type.endsWith('_abs')?F.v/model.V:0,fast);
-    last=[mp,cs,ext,overlay(model,fr,ext,+$('slab').value||0.4),type];$('png').disabled=false;
+    last=[mp,cs,ext,overlay(model,fr,ext,+$('slab').value||0.4),type];$('png').disabled=false;$('cpng').disabled=false;
     $('info').textContent=baseInfo+'\n'+draw(...last)+(type.endsWith('_abs')?`\nF000 = ${F.v.toFixed(1)} e (${F.src}) -> +${(F.v/model.V).toFixed(3)} e/Å³ added`:'');
   }catch(err){$('info').textContent='Error: '+err.message;}
 }
@@ -91,6 +91,19 @@ function draw(mp,cs,ext,atoms,type){
 $('png').addEventListener('click',()=>{if(!last)return;
   cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${fileBase}_${last[4]}.png`;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);},'image/png');});
+
+// Copy the canvas as PNG to the clipboard (shared with the Patterson tab)
+window.copyCanvasPNG=async(canvas,btn)=>{
+  const t0=btn.dataset.label||(btn.dataset.label=btn.textContent);
+  const flash=m=>{btn.textContent=m;clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.textContent=t0;},1600);};
+  if(!navigator.clipboard||!window.ClipboardItem){flash('Not supported');return;}
+  try{
+    const blob=new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('toBlob failed')),'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    flash('Copied \u2713');
+  }catch(e){console.error(e);flash('Copy failed');}
+};
+$('cpng').addEventListener('click',()=>{if(last)copyCanvasPNG(cv,$('cpng'));});
 
 // ---- pan (drag), zoom (wheel, around the pointer), reset (double-click) ----
 ['a1','a2','a3'].forEach(id=>$(id).addEventListener('change',()=>{view.x=view.y=0;}));

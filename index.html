@@ -38,7 +38,8 @@
   <div class="seg">
    <input type="radio" name="cmode" id="cm0" value="bw" checked><label for="cm0" data-tip="Contour lines only: solid = positive, dashed = negative, dotted = zero.">Black / white</label><input type="radio" name="cmode" id="cm1" value="col"><label for="cm1" data-tip="Adds shaded density below the contours: blue = positive, red = negative, white = zero.">Blue / red</label>
   </div>
-   <button id="png" class="ghost" disabled data-tip="Saves the map as a PNG image exactly as shown, including atoms, legend and colours. Available after a calculation.">Save PNG</button>
+   <div class="btns"><button id="cpng" class="ghost" disabled data-tip="Copies the map as a PNG image to the clipboard, exactly as shown, including atoms, legend and colours. Paste it into a document or slide. Available after a calculation.">Copy PNG</button>
+   <button id="png" class="ghost" disabled data-tip="Saves the map as a PNG image exactly as shown, including atoms, legend and colours. Available after a calculation.">Save PNG</button></div>
  </div>
 </section>
 </aside>
@@ -77,7 +78,8 @@
   <div class="opts">
    <label class="switch"><input type="checkbox" id="pshowLegend" checked><span>Legend</span></label>
    <div class="seg"><input type="radio" name="pcmode" id="pcm0" checked><label for="pcm0">Black / white</label><input type="radio" name="pcmode" id="pcm1"><label for="pcm1">Blue / red</label></div>
-   <button id="ppng" class="ghost" disabled>Save PNG</button>
+   <div class="btns"><button id="pcpng" class="ghost" disabled data-tip="Copies the map as a PNG image to the clipboard, exactly as shown.">Copy PNG</button>
+   <button id="ppng" class="ghost" disabled>Save PNG</button></div>
   </div>
 </section>
 </aside>

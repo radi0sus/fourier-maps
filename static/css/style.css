@@ -56,7 +56,8 @@ button.ghost:hover:not(:disabled){border-color:var(--acc);color:var(--acc);filte
 .hint{color:var(--mut);font-size:.85rem}
 
 /* PNG button inside the View card */
-.opts .ghost{margin-left:auto}
+.opts .btns{margin-left:auto;display:flex;gap:.5rem}
+.opts .btns .ghost{margin-left:0}
 .card>.hint{margin:-.3rem 0 .6rem}
 
 /* controls left, map right */
