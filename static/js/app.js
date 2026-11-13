@@ -5,7 +5,7 @@ let model=null,prep=null,last=null,baseInfo='',fileBase='map';
 function hexRGB(s){s=s.trim().replace('#','');if(s.length===3)s=s.replace(/./g,'$&$&');return[0,2,4].map(i=>parseInt(s.slice(i,i+2),16));}
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 async function loadFile(f){
-  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();
+  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();if(window.simReset)simReset();
   try{
     $('info').textContent='Reading '+f.name+' ...';
     model=buildModel(parseCIF(await f.text()));
@@ -18,7 +18,7 @@ this tool: Rint = ${(100*prep.Rint).toFixed(2)} %, R1 = ${(100*prep.R1).toFixed(
     baseInfo=$('info').textContent;
     model.atoms.filter(a=>a.el!=='H').slice(0,3).forEach((a,i)=>{$('a'+(i+1)).value=a.lab;}); // default plane: first three non-H atoms
     $('info').textContent+='\nComputing 3D density ...';await new Promise(r=>setTimeout(r));
-    computeVolume();render();if(window.patReady)patReady();
+    if(window.simReady)simReady();computeVolume();render();if(window.patReady)patReady();
   }catch(err){$('info').textContent='Error: '+err.message;}
 }
 $('file').addEventListener('change',e=>loadFile(e.target.files[0]));
@@ -32,7 +32,7 @@ document.querySelectorAll('input[type=range]').forEach(r=>r.addEventListener('in
 $('type').addEventListener('change',()=>{$('cstep').value=$('type').value==='diff'?0.05:0.5;syncOut();});
 // ---- live view: 3D density once per file / resolution limit, sections are cut out instantly ----
 let offc=null,vol=null,pending=false,dTimer=null,drag=false,quick=false,qt=null;const view={x:0,y:0};
-function computeVolume(){vol=density3D(model,volTerms(model,prep,+$('dmin').value||0));}
+function computeVolume(){vol=density3D(model,volTerms(model,window.simPrep?simPrep(prep):prep,+$('dmin').value||0));}
 function render(){
   if(!vol)return;
   try{
@@ -40,8 +40,8 @@ function render(){
     const fr=planeFrame(model,['a1','a2','a3'].map(i=>$(i).value),+$('off').value||0);
     fr.o=fr.o.map((v,i)=>v+view.x*fr.e1[i]+view.y*fr.e2[i]); // pan: shifts the centre of the section within its plane
     const mp=samplePlane(model,vol,fr,ext,step,type,type.endsWith('_abs')?F.v/model.V:0,fast);
-    last=[mp,cs,ext,overlay(model,fr,ext,+$('slab').value||0.4),type];$('png').disabled=false;$('cpng').disabled=false;
-    $('info').textContent=baseInfo+'\n'+draw(...last)+(type.endsWith('_abs')?`\nF000 = ${F.v.toFixed(1)} e (${F.src}) -> +${(F.v/model.V).toFixed(3)} e/Å³ added`:'');
+    last=[mp,cs,ext,overlay(model,fr,ext,Math.max(+$('slab').value||0.4,window.simGhosts&&simGhosts()?1.2:0)),type,fr];$('png').disabled=false;$('cpng').disabled=false;
+    $('info').textContent=baseInfo+'\n'+draw(...last)+(type.endsWith('_abs')?`\nF000 = ${F.v.toFixed(1)} e (${F.src}) -> +${(F.v/model.V).toFixed(3)} e/Å³ added`:'')+(window.simInfo?simInfo():'');
   }catch(err){$('info').textContent='Error: '+err.message;}
 }
 const live=()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;render();});}};
@@ -65,11 +65,14 @@ function draw(mp,cs,ext,atoms,type){
   [[0,[]],[1,[6,4]],[2,[1.5,3.5]]].forEach(([t,dash])=>{const S=segs[t];if(!S.n)return;ctx.setLineDash(dash);ctx.beginPath();
     for(let q=0;q<S.n;q+=4){ctx.moveTo(sx(S.a[q]),sy(S.a[q+1]));ctx.lineTo(sx(S.a[q+2]),sy(S.a[q+3]));}ctx.stroke();});
   ctx.globalAlpha=1;ctx.setLineDash([]);ctx.font='13px system-ui';ctx.textAlign='center';ctx.strokeStyle=mut;ctx.lineWidth=2.5;
-  const at2=$('showAtoms').checked?atoms:[];
+  const sl=+$('slab').value||0.4,miss=window.simMissing||(()=>false),at0=$('showAtoms').checked?atoms.filter(a=>miss(a.lab)||Math.abs(a.dz)<sl):[],at2=at0.filter(a=>!miss(a.lab));
   for(let i=0;i<at2.length;i++)for(let j=i+1;j<at2.length;j++){const p=at2[i],q=at2[j];
     if(Math.hypot(p.c[0]-q.c[0],p.c[1]-q.c[1],p.c[2]-q.c[2])<(RAD[p.el]||1.4)+(RAD[q.el]||1.4)+0.4){ctx.beginPath();ctx.moveTo(ux(p.u),vy(p.v));ctx.lineTo(ux(q.u),vy(q.v));ctx.stroke();}}
   for(const a of at2){ctx.fillStyle=ATOM_COLOR[a.el]||'#a050c0';ctx.beginPath();ctx.arc(ux(a.u),vy(a.v),6,0,7);ctx.fill();
     ctx.strokeStyle=bg;ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle=fg;ctx.fillText(a.el,ux(a.u),vy(a.v)-10);}
+  if(window.simGhosts&&simGhosts()){ctx.save();ctx.setLineDash([3,3]);ctx.lineWidth=1.5;ctx.strokeStyle=mut;ctx.fillStyle=mut; // atoms that are not in the model yet
+    for(const a of at0)if(miss(a.lab)){const o=Math.abs(a.dz)>=sl;ctx.globalAlpha=o?.6:1;ctx.beginPath();ctx.arc(ux(a.u),vy(a.v),7,0,7);ctx.stroke(); // paler and with its height when it lies beside the plane
+      ctx.fillText(a.el+(o?` ${a.dz>0?'+':'−'}${Math.abs(a.dz).toFixed(1)} Å`:''),ux(a.u),vy(a.v)-12);}ctx.restore();}
   ctx.strokeStyle=fg;
   const L=W/(2*ext);ctx.strokeStyle=fg;ctx.fillStyle=fg;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(20,W-24);ctx.lineTo(20+L,W-24);ctx.stroke();
   ctx.textAlign='left';ctx.fillText('1 Å',20,W-32);

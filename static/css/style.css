@@ -79,3 +79,15 @@ button.chip.off{opacity:.55;cursor:default}
 #cvp{cursor:grab;touch-action:none}#cvp.drag{cursor:grabbing}
 .ro{min-height:1.4em;font-variant-numeric:tabular-nums}
 .card>.hint+.chips{margin-top:.3rem}
+
+/* simulated refinement (Model card) */
+.simstat{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem 1rem;margin:.2rem 0 .7rem}
+.simstat .big{font-size:1.15rem;font-weight:650;font-variant-numeric:tabular-nums}
+.simstat .hint{flex-basis:100%}
+#simBody .hint{margin:.5rem 0}
+.atomlist{max-height:9.6rem;overflow:auto;padding:.1rem}
+.atomlist button.chip:not(.sel){border-style:dashed;color:var(--mut)}
+button.chip.sel,button.chip.sel:hover:not(:disabled){background:var(--acc);border-color:var(--acc);color:#fff}
+button.chip.act{border-color:var(--acc);color:var(--acc)}
+button.chip:disabled{opacity:.45;cursor:default}
+.switch input:disabled{opacity:.5;cursor:default}

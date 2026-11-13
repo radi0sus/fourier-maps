@@ -22,6 +22,26 @@
   <label class="sl" data-tip="Shifts the section parallel to itself, along its normal. Positive and negative values look above and below the plane through the three atoms."><span>Offset <output id="offOut"></output></span><input id="off" type="range" min="-3" max="3" step="0.05" value="0" data-u=" &Aring;"></label>
   <label class="sl" data-tip="Atoms closer to the plane than this distance are drawn into the map, with bonds between them."><span>Atom slab <output id="slabOut"></output></span><input id="slab" type="range" min="0.1" max="1" step="0.05" value="0.4" data-u=" &Aring;"></label>
  </section>
+<section class="card"><h2>Model</h2>
+  <label class="switch" data-tip="Teaching mode: only the atoms ticked below contribute to Fc. The others are still in Fo, so they appear as peaks in the Fo&minus;Fc map. Add atoms step by step and watch the peaks vanish and R1 fall. Nothing is refined; positions and ADPs come from the CIF."><input type="checkbox" id="simOn" disabled><span>Simulate refinement (partial model)</span></label>
+  <div id="simBody" hidden>
+   <div class="hint">Click a peak in the map to add the missing atom there (Shift+click removes an atom). Or tick atoms in the list.</div>
+   <div class="simstat" id="simStat" data-tip="R1 and wR2 of the current partial model against Fo, same definitions as in the log. Below: the values of the full model."></div>
+   <div class="chips">
+    <button class="chip act" id="simAdd" data-tip="Adds the missing atom with the highest Fo&minus;Fc density at its position.">+ strongest peak</button>
+    <button class="chip" id="simUndo" data-tip="Goes back one step.">Undo</button>
+    <button class="chip" id="simHeavy" data-tip="Starts again with all atoms of the heaviest element (the heavy-atom method).">Heaviest</button>
+    <button class="chip" id="simNonH" data-tip="All atoms except hydrogen. The H atoms are left as weak peaks.">Non-H</button>
+    <button class="chip" id="simAll">All</button><button class="chip" id="simNone">None</button>
+   </div>
+   <div class="chips atomlist" id="simAtoms"></div>
+   <div class="opts">
+    <label class="switch" data-tip="Sets the contour step of the difference map after every change of the model, so that the strongest missing peak has about 12 lines. Moving the contour slider by hand switches this off."><input type="checkbox" id="simAuto" checked><span>Auto contour step</span></label>
+    <label class="switch" data-tip="Draw atoms that are not in the model as dashed rings, so you can see where to click. Switch off to hide them."><input type="checkbox" id="simGhost" checked><span>Show missing atoms</span></label>
+    <label class="switch" data-tip="Off: Fo keeps the scale of the full model, which makes the difference map easy to read. On: the scale factor is fitted again for the partial model after every step, as a real refinement would do."><input type="checkbox" id="simRefit"><span>Refit scale</span></label>
+   </div>
+  </div>
+ </section>
 <section class="card"><h2>Map</h2>
   <div data-tip="Fo−Fc: difference map (residual density; the F000 term cancels). Fo / Fc (relative): without the F000 term, so zero means the cell-average density. Fo / Fc (absolute): F000 (electrons per cell, from the CIF) is added back as a constant, so the map shows the real electron density in e/Å³, mostly positive apart from truncation ripples. F000 cancels in Fo−Fc."><select id="type"><option value="diff">Fo &minus; Fc (difference)</option><option value="fo">Fo (relative to cell mean)</option><option value="fc">Fc (relative to cell mean)</option><option value="fo_abs">Fo (absolute, with F000)</option><option value="fc_abs">Fc (absolute, with F000)</option></select></div>
   <label class="sl" data-tip="Density step between neighbouring contour lines. Solid = positive, dashed = negative, dotted = zero. Smaller steps show weaker features; typical: 0.05 e/Å³ for difference maps, 0.5 for Fo/Fc."><span>Contour step <output id="cstepOut"></output></span><input id="cstep" type="range" min="0.01" max="1" step="0.01" value="0.05" data-u=" e/&Aring;&sup3;"></label>
@@ -93,5 +113,5 @@
 </div>
 </main>
 <script src="static/js/cif.js"></script><script src="static/js/hkl-parser.js"></script><script src="static/js/scattering-factors.js"></script>
-<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/patterson.js"></script>
+<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/patterson.js"></script>
 </body></html>

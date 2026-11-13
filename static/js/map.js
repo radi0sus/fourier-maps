@@ -208,6 +208,6 @@ function overlay(m,fr,ext,slab=0.4){ // atoms (symmetry copies + cell translatio
     for(let tx=Math.ceil(lo[0]-x0[0]);tx<=Math.floor(hi[0]-x0[0]);tx++)for(let ty=Math.ceil(lo[1]-x0[1]);ty<=Math.floor(hi[1]-x0[1]);ty++)for(let tz=Math.ceil(lo[2]-x0[2]);tz<=Math.floor(hi[2]-x0[2]);tz++){
       const c=mv(m.M,[x0[0]+tx,x0[1]+ty,x0[2]+tz]),d=c.map((v,i)=>v-fr.o[i]),u=dot(d,fr.e1),v=dot(d,fr.e2);
       if(Math.abs(dot(d,fr.n))>=slab||Math.abs(u)>=R||Math.abs(v)>=R)continue;
-      const key=Math.round(u*20)+','+Math.round(v*20);if(seen.has(key))continue;seen.add(key);out.push({u,v,el:at.el,c});}}
+      const key=Math.round(u*20)+','+Math.round(v*20);if(seen.has(key))continue;seen.add(key);out.push({u,v,el:at.el,lab:at.lab,c,dz:dot(d,fr.n)});}}
   return out;
 }
