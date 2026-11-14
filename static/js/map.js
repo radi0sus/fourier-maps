@@ -155,15 +155,15 @@ function tri(A,x0,x1,y0,y1,z0,z1,fx,fy,fz){
 function samplePlane(m,vol,fr,ext,step,type,c0=0,fast=false){
   const n=Math.round(2*ext/step)+1,gs=2*ext/(n-1),[N1,N2,N3]=vol.N,g=new Float32Array(n*n),[w0,w1,w2]=wb,FO=vol.fo,FC=vol.fc;
   const o=mv(m.Mi,fr.o),e1=mv(m.Mi,fr.e1),e2=mv(m.Mi,fr.e2),ix=new Int32Array(4),iy=new Int32Array(4),iz=new Int32Array(4);
-  const md=(a,b)=>{a%=b;return a<0?a+b:a;},dif=type==='diff',fo=type.startsWith('fo'),NN=N1*N2;
+  const md=(a,b)=>{a%=b;return a<0?a+b:a;},dif=type==='diff',two=type==='2fofc',fo=type.startsWith('fo'),NN=N1*N2; // two: 2Fo-Fc = 2*(Fo map) - (Fc map)
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){
     const u=-ext+i*gs,v=-ext+j*gs,p0=(o[0]+u*e1[0]+v*e2[0])*N1,p1=(o[1]+u*e1[1]+v*e2[1])*N2,p2=(o[2]+u*e1[2]+v*e2[2])*N3;
     const b0=Math.floor(p0),b1=Math.floor(p1),b2=Math.floor(p2);let val;
     if(fast){const x0=md(b0,N1),x1=md(b0+1,N1),y0=md(b1,N2)*N1,y1=md(b1+1,N2)*N1,z0=md(b2,N3)*NN,z1=md(b2+1,N3)*NN,fx=p0-b0,fy=p1-b1,fz=p2-b2;
-      val=dif?tri(FO,x0,x1,y0,y1,z0,z1,fx,fy,fz)-tri(FC,x0,x1,y0,y1,z0,z1,fx,fy,fz):tri(fo?FO:FC,x0,x1,y0,y1,z0,z1,fx,fy,fz);}
+      val=dif?tri(FO,x0,x1,y0,y1,z0,z1,fx,fy,fz)-tri(FC,x0,x1,y0,y1,z0,z1,fx,fy,fz):two?2*tri(FO,x0,x1,y0,y1,z0,z1,fx,fy,fz)-tri(FC,x0,x1,y0,y1,z0,z1,fx,fy,fz):tri(fo?FO:FC,x0,x1,y0,y1,z0,z1,fx,fy,fz);}
     else{cubInto(p0-b0,w0);cubInto(p1-b1,w1);cubInto(p2-b2,w2);
       for(let a=0;a<4;a++){ix[a]=md(b0+a-1,N1);iy[a]=md(b1+a-1,N2)*N1;iz[a]=md(b2+a-1,N3)*NN;}
-      val=dif?cub(FO,ix,iy,iz,w0,w1,w2)-cub(FC,ix,iy,iz,w0,w1,w2):cub(fo?FO:FC,ix,iy,iz,w0,w1,w2);}
+      val=dif?cub(FO,ix,iy,iz,w0,w1,w2)-cub(FC,ix,iy,iz,w0,w1,w2):two?2*cub(FO,ix,iy,iz,w0,w1,w2)-cub(FC,ix,iy,iz,w0,w1,w2):cub(fo?FO:FC,ix,iy,iz,w0,w1,w2);}
     g[j*n+i]=val+c0;}
   return{g,n,gs};
 }

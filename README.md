@@ -22,6 +22,8 @@ Mouse: drag the map to pan, wheel to zoom around the pointer, double-click to re
 
 Performance: while dragging or moving a slider a cheap preview is drawn (coarser grid, trilinear); the full-quality map follows 150 ms after the last change. Atoms are generated for the visible region only, so panning never runs out of atoms.
 
+The map type *2Fo − Fc* (relative) is the Fo map plus the Fo − Fc map: atoms of the model keep their height, missing atoms come out about twice as strong as in the Fo map. With a partial model it shows the framework and the gaps in one picture.
+
 ## Simulated refinement (Model card, Fourier tab)
 
 Teaching mode, no real refinement. Switch on *Simulate refinement*: only the atoms ticked in the model list contribute to Fc
