@@ -5,7 +5,7 @@ let model=null,prep=null,last=null,baseInfo='',fileBase='map';
 function hexRGB(s){s=s.trim().replace('#','');if(s.length===3)s=s.replace(/./g,'$&$&');return[0,2,4].map(i=>parseInt(s.slice(i,i+2),16));}
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 async function loadFile(f){
-  if(!f)return;$('dzname').textContent=f.name;fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();if(window.simReset)simReset();
+  if(!f)return;$('dzname').textContent=f.name;$('dzname').classList.remove('ph');fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();if(window.simReset)simReset();
   try{
     $('info').textContent='Reading '+f.name+' ...';
     model=buildModel(parseCIF(await f.text()));
@@ -22,10 +22,12 @@ this tool: Rint = ${(100*prep.Rint).toFixed(2)} %, R1 = ${(100*prep.R1).toFixed(
   }catch(err){$('info').textContent='Error: '+err.message;}
 }
 $('file').addEventListener('change',e=>loadFile(e.target.files[0]));
-const dz=$('drop');
-['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add('over');}));
-['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove('over');}));
-dz.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+// the whole window is the drop target (a counter, because dragenter/dragleave also fire for child elements)
+const veil=$('dropveil'),hasFiles=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');let dragN=0;
+window.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault();dragN++;veil.hidden=false;});
+window.addEventListener('dragover',e=>{if(hasFiles(e))e.preventDefault();});
+window.addEventListener('dragleave',e=>{if(!hasFiles(e))return;dragN=Math.max(0,dragN-1);if(!dragN)veil.hidden=true;});
+window.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragN=0;veil.hidden=true;loadFile(e.dataTransfer.files[0]);});
 // slider read-outs
 function syncOut(){document.querySelectorAll('input[type=range]').forEach(r=>{const o=$(r.id+'Out');if(o)o.textContent=(+r.value).toFixed((r.step.split('.')[1]||'').length)+(r.dataset.u||'');});}
 document.querySelectorAll('input[type=range]').forEach(r=>r.addEventListener('input',syncOut));syncOut();

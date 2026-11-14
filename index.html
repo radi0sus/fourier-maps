@@ -2,52 +2,24 @@
 <html lang="en"><head><meta charset="utf-8"><title>Fourier &amp; Patterson maps</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="static/css/style.css"></head>
-<body><main>
-<header><h1>Fourier &amp; Patterson maps</h1>
+<body><div id="dropveil" hidden>Drop the CIF anywhere</div><div class="app-shell">
+<aside class="sidebar">
+<header class="app-brand"><h1>Fourier &amp; Patterson maps</h1>
 <p class="sub">Fourier contour maps (Fo&minus;Fc, Fo, Fc) from a CIF with reflection data &middot; runs entirely in your browser</p></header>
-
-<label id="drop" class="drop tip-below" data-tip="Drop a CIF here or click to choose one. It needs the model (cell, symmetry, atoms, ADPs) plus reflection data (_shelx_hkl_file, _refln or _diffrn_refln).">
- <input type="file" id="file" accept=".cif" hidden>
- <span class="dz-title">Drop a CIF here</span>
- <span class="dz-sub">or click to choose a file &middot; needs _shelx_hkl_file, _refln or _diffrn_refln data</span>
- <span id="dzname" class="dz-name"></span>
-</label>
-
+<label id="drop" class="filebar tip-below" data-tip="Choose a CIF, or drop one anywhere in this window. It needs the model (cell, symmetry, atoms, ADPs) plus reflection data (_shelx_hkl_file, _refln or _diffrn_refln)."><input type="file" id="file" accept=".cif" hidden><span class="fb-btn">Open CIF</span><span id="dzname" class="dz-name ph">or drop a CIF anywhere</span></label>
 <div class="tabs" role="tablist"><button class="tab on" data-tab="fourier" data-tip="Fo/Fc/difference Fourier contour maps in the plane of three atoms.">Fourier map</button><button class="tab" data-tab="patterson" data-tip="Patterson map P(u,v,w) from |F|² (no phases): sections u, v or w = const, with Harker lines and planes.">Patterson map</button></div>
-<div id="tab-fourier">
-<div class="layout">
-<aside class="panel">
-<section class="card"><h2>Plane</h2>
+<div id="side-fourier" class="side-tab">
+<details class="card" data-key="f-plane" open><summary>Plane</summary><div class="card-body">
   <div class="row3" data-tip="Three atoms that define the section plane. The map is drawn in the plane through them, centred on their midpoint."><select id="a1"></select><select id="a2"></select><select id="a3"></select></div>
   <label class="sl" data-tip="Shifts the section parallel to itself, along its normal. Positive and negative values look above and below the plane through the three atoms."><span>Offset <output id="offOut"></output></span><input id="off" type="range" min="-3" max="3" step="0.05" value="0" data-u=" &Aring;"></label>
   <label class="sl" data-tip="Atoms closer to the plane than this distance are drawn into the map, with bonds between them."><span>Atom slab <output id="slabOut"></output></span><input id="slab" type="range" min="0.1" max="1" step="0.05" value="0.4" data-u=" &Aring;"></label>
- </section>
-<section class="card"><h2>Model</h2>
-  <label class="switch" data-tip="Teaching mode: only the atoms ticked below contribute to Fc. The others are still in Fo, so they appear as peaks in the Fo&minus;Fc map. Add atoms step by step and watch the peaks vanish and R1 fall. Nothing is refined; positions and ADPs come from the CIF."><input type="checkbox" id="simOn" disabled><span>Simulate refinement (partial model)</span></label>
-  <div id="simBody" hidden>
-   <div class="hint">Click a peak in the map to add the missing atom there (Shift+click removes an atom). Or tick atoms in the list.</div>
-   <div class="simstat" id="simStat" data-tip="R1 and wR2 of the current partial model against Fo, same definitions as in the log. Below: the values of the full model."></div>
-   <div class="chips">
-    <button class="chip act" id="simAdd" data-tip="Adds the missing atom with the highest Fo&minus;Fc density at its position.">+ strongest peak</button>
-    <button class="chip" id="simUndo" data-tip="Goes back one step.">Undo</button>
-    <button class="chip" id="simHeavy" data-tip="Starts again with all atoms of the heaviest element (the heavy-atom method).">Heaviest</button>
-    <button class="chip" id="simNonH" data-tip="All atoms except hydrogen. The H atoms are left as weak peaks.">Non-H</button>
-    <button class="chip" id="simAll">All</button><button class="chip" id="simNone">None</button>
-   </div>
-   <div class="chips atomlist" id="simAtoms"></div>
-   <div class="opts">
-    <label class="switch" data-tip="Sets the contour step of the difference map after every change of the model, so that the strongest missing peak has about 12 lines. Moving the contour slider by hand switches this off."><input type="checkbox" id="simAuto" checked><span>Auto contour step</span></label>
-    <label class="switch" data-tip="Draw atoms that are not in the model as dashed rings, so you can see where to click. Switch off to hide them."><input type="checkbox" id="simGhost" checked><span>Show missing atoms</span></label>
-    <label class="switch" data-tip="Off: Fo keeps the scale of the full model, which makes the difference map easy to read. On: the scale factor is fitted again for the partial model after every step, as a real refinement would do."><input type="checkbox" id="simRefit"><span>Refit scale</span></label>
-   </div>
-  </div>
- </section>
-<section class="card"><h2>Map</h2>
+ </div></details>
+<details class="card" data-key="f-map" open><summary>Map</summary><div class="card-body">
   <div data-tip="Fo−Fc: difference map (residual density; the F000 term cancels). Fo / Fc (relative): without the F000 term, so zero means the cell-average density. Fo / Fc (absolute): F000 (electrons per cell, from the CIF) is added back as a constant, so the map shows the real electron density in e/Å³, mostly positive apart from truncation ripples. F000 cancels in Fo−Fc."><select id="type"><option value="diff">Fo &minus; Fc (difference)</option><option value="fo">Fo (relative to cell mean)</option><option value="fc">Fc (relative to cell mean)</option><option value="fo_abs">Fo (absolute, with F000)</option><option value="fc_abs">Fc (absolute, with F000)</option></select></div>
   <label class="sl" data-tip="Density step between neighbouring contour lines. Solid = positive, dashed = negative, dotted = zero. Smaller steps show weaker features; typical: 0.05 e/Å³ for difference maps, 0.5 for Fo/Fc."><span>Contour step <output id="cstepOut"></output></span><input id="cstep" type="range" min="0.01" max="1" step="0.01" value="0.05" data-u=" e/&Aring;&sup3;"></label>
   <label class="sl" data-tip="Leaves out reflections with a d-spacing below this value. 0 = use all. A cut reduces noise and Fourier ripples but blurs the map."><span>Resolution limit d<sub>min</sub> <output id="dminOut"></output></span><input id="dmin" type="range" min="0" max="2" step="0.05" value="0" data-u=" &Aring;"></label>
- </section>
-<section class="card"><h2>View</h2>
+ </div></details>
+<details class="card" data-key="f-view"><summary>View</summary><div class="card-body">
  <div class="hint">Drag the map to pan &middot; wheel to zoom &middot; double-click to reset</div>
   <div class="grid2">
   <label class="sl" data-tip="Zoom into the map. The mouse wheel zooms around the pointer, dragging the map pans it, a double-click resets the view."><span>Zoom <output id="zoomOut"></output></span><input id="zoom" type="range" min="0.5" max="4" step="0.05" value="1" data-u="&times;"></label>
@@ -61,38 +33,52 @@
    <div class="btns"><button id="cpng" class="ghost" disabled data-tip="Copies the map as a PNG image to the clipboard, exactly as shown, including atoms, legend and colours. Paste it into a document or slide. Available after a calculation.">Copy PNG</button>
    <button id="png" class="ghost" disabled data-tip="Saves the map as a PNG image exactly as shown, including atoms, legend and colours. Available after a calculation.">Save PNG</button></div>
  </div>
-</section>
-</aside>
-<div class="stage">
-<canvas id="cv" width="800" height="800"></canvas>
-<section class="card" data-tip="Merging and refinement statistics of this tool, next to the values stored in the CIF (Rint, R1, wR2, unique reflections)."><h2>Log</h2><div id="info" class="info">Load a CIF to start.</div></section>
 </div>
+</div></details>
+<details class="card" data-key="model" id="simCard" open><summary>Model</summary><div class="card-body">
+  <label class="switch" data-tip="Teaching mode: only the atoms ticked below contribute to Fc. The others are still in Fo, so they appear as peaks in the Fo&minus;Fc map. Add atoms step by step and watch the peaks vanish and R1 fall. Nothing is refined; positions and ADPs come from the CIF."><input type="checkbox" id="simOn" disabled><span>Simulate refinement (partial model)</span></label>
+  <div id="simBody" hidden>
+   <div class="hint" id="simHint">Click a peak in the map to add the missing atom there (Shift+click removes an atom). Or tick atoms in the list.</div>
+   <div class="simstat" id="simStat" data-tip="R1 and wR2 of the current partial model against Fo, same definitions as in the log. Below: the values of the full model."></div>
+   <div class="simnext hint" id="simNext"></div>
+   <div class="chips">
+   <button class="chip act" id="simAdd" data-tip="Adds the missing atom with the highest Fo&minus;Fc density at its position.">+ strongest peak</button>
+   <button class="chip" id="simUndo" data-tip="Goes back one step.">Undo</button>
+   <button class="chip" id="simHeavy" data-tip="Starts again with all atoms of the heaviest element (the heavy-atom method).">Heaviest</button>
+   <button class="chip" id="simNonH" data-tip="All atoms except hydrogen. The H atoms are left as weak peaks.">Non-H</button>
+   <button class="chip" id="simAll">All</button><button class="chip" id="simNone">None</button>
+   </div>
+   <div class="chips atomlist" id="simAtoms"></div>
+   <div class="opts">
+    <label class="switch" data-tip="Sets the contour step of the difference map after every change of the model, so that the strongest missing peak has about 12 lines. Moving the contour slider by hand switches this off."><input type="checkbox" id="simAuto" checked><span>Auto contour step</span></label>
+    <label class="switch" data-tip="Draw atoms that are not in the model as dashed rings, so you can see where to click. Switch off to hide them."><input type="checkbox" id="simGhost" checked><span>Show missing atoms</span></label>
+    <label class="switch" data-tip="Off: Fo keeps the scale of the full model, which makes the difference map easy to read. On: the scale factor is fitted again for the partial model after every step, as a real refinement would do."><input type="checkbox" id="simRefit"><span>Refit scale</span></label>
+   </div>
+  </div>
+ </div></details>
 </div>
-</div>
-<div id="tab-patterson" hidden>
-<div class="layout">
-<aside class="panel">
-<section class="card"><h2>Section</h2>
+<div id="side-patterson" class="side-tab" hidden>
+<details class="card" data-key="p-section" open><summary>Section</summary><div class="card-body">
   <div class="seg" data-tip="Which Patterson coordinate is kept constant. u = const shows the v/w plane, v = const the u/w plane, w = const the u/v plane.">
    <input type="radio" name="paxis" id="pax0" value="0"><label for="pax0">u = const</label><input type="radio" name="paxis" id="pax1" value="1" checked><label for="pax1">v = const</label><input type="radio" name="paxis" id="pax2" value="2"><label for="pax2">w = const</label>
   </div>
   <label class="sl" data-tip="Position of the section along the chosen axis, in fractional coordinates (0 … 1, periodic)."><span>Position <output id="pposOut"></output></span><input id="ppos" type="range" min="0" max="1" step="0.005" value="0.5" data-u=""></label>
   <div class="chips"><button class="chip" data-pos="0">0</button><button class="chip" data-pos="0.25">¼</button><button class="chip" data-pos="0.3333">⅓</button><button class="chip" data-pos="0.5">½</button><button class="chip" data-pos="0.6667">⅔</button><button class="chip" data-pos="0.75">¾</button></div>
-</section>
-<section class="card"><h2>Harker elements</h2>
+</div></details>
+<details class="card" data-key="p-harker" open><summary>Harker elements</summary><div class="card-body">
   <div class="hint">Click an element to jump to a section that shows it. Hover for the symmetry operator.</div>
   <div id="hkList" class="chips"></div>
   <div class="opts"><label class="switch" data-tip="Draw the Harker planes (orange, dashed) and Harker lines / points (green) that fall into the current section. A thick orange frame means the whole section is a Harker section."><input type="checkbox" id="pshowH" checked><span>Show Harker lines &amp; planes</span></label></div>
-</section>
-<section class="card"><h2>Map</h2>
+</div></details>
+<details class="card" data-key="p-map" open><summary>Map</summary><div class="card-body">
   <div data-tip="Fo²: Patterson from the observed intensities (scaled to Fc). Fc²: from the model. Fo²−Fc²: difference Patterson."><select id="pmap"><option value="fo">Fo² (observed)</option><option value="fc">Fc² (calculated)</option><option value="diff">Fo² − Fc² (difference)</option></select></div>
   <div style="margin-top:.5rem" data-tip="Coefficients of the Patterson sum. |F|²: classical Patterson with a strong origin peak. E²: sharpened (Wilson-normalised), point-atom-like peaks, origin peak kept (as in SHELXS). E²−1: sharpened with the origin peak subtracted out, so weak peaks stand out."><select id="pcoef"><option value="plain">Coefficients |F|² (classical)</option><option value="e2">Sharpened E² (origin peak kept)</option><option value="sharp">Sharpened E² − 1 (origin peak removed)</option></select></div>
   <div style="margin-top:.5rem" data-tip="Unit of heights and contour steps. SHELX: strongest peak (the origin peak, unless removed) = 999. σ: rms of the map, with the region around the origin left out. %: strongest peak = 100 %. Only the scale changes, not the map."><select id="pscl"><option value="pct">Scale: % of strongest peak</option><option value="sigma">Scale: σ (rms of the map)</option><option value="shelx">Scale: SHELX (strongest peak = 999)</option></select></div>
   <label class="sl" data-tip="Density step between neighbouring contour lines. Solid = positive, dashed = negative, dotted = zero."><span>Contour step <output id="pcstepOut"></output></span><input id="pcstep" type="range" min="0.1" max="10" step="0.1" value="3" data-u=" %"></label>
   <label class="sl" data-tip="Blue/red mode only: density at which the colours are fully saturated. Lower it to see weak features next to the strong origin peak."><span>Colour scale ± <output id="psatOut"></output></span><input id="psat" type="range" min="1" max="100" step="1" value="25" data-u=" %"></label>
   <label class="sl" data-tip="Leaves out reflections with a d-spacing below this value. 0 = use all."><span>Resolution limit d<sub>min</sub> <output id="pdminOut"></output></span><input id="pdmin" type="range" min="0" max="2" step="0.05" value="0" data-u=" &Aring;"></label>
-</section>
-<section class="card"><h2>View</h2>
+</div></details>
+<details class="card" data-key="p-view"><summary>View</summary><div class="card-body">
   <div class="hint">Drag to pan &middot; wheel to zoom &middot; double-click to reset</div>
   <label class="sl"><span>Zoom <output id="pzoomOut"></output></span><input id="pzoom" type="range" min="0.5" max="6" step="0.05" value="1" data-u="&times;"></label>
   <label class="sl" data-tip="Distance between the points where the map is evaluated."><span>Grid spacing <output id="pgstepOut"></output></span><input id="pgstep" type="range" min="0.03" max="0.2" step="0.01" value="0.06" data-u=" &Aring;"></label>
@@ -102,16 +88,26 @@
    <div class="btns"><button id="pcpng" class="ghost" disabled data-tip="Copies the map as a PNG image to the clipboard, exactly as shown.">Copy PNG</button>
    <button id="ppng" class="ghost" disabled>Save PNG</button></div>
   </div>
-</section>
+</div></details>
+<details class="card" data-key="p-vectors" open><summary>Interatomic vectors</summary><div class="card-body">
+  <label class="switch" data-tip="Marks where the atoms of the CIF should put Patterson peaks: for every pair of atoms, including all symmetry images, the vector between them is drawn if it lies within 0.4 Å of the section. Ring size grows with Z×Z, so heavy-atom vectors stand out. Purple: vector between an atom and its own symmetry image (these lie on the Harker elements). Blue-green: all other vectors. Dashed: involves an atom that is not in the model yet (Fourier tab). Hover a ring to see the atom pair."><input type="checkbox" id="pshowV" checked><span>Show vectors</span></label>
+  <div style="margin-top:.6rem" data-tip="Which atom pairs are used. The model is the partial model of the Model card (Fourier tab); with Simulate refinement switched off all atoms count as in the model."><select id="pvsrc"><option value="all">All atoms</option><option value="model">Atoms in the model only</option><option value="missing">Only vectors with a missing atom</option></select></div>
+  <label class="sl" data-tip="Hides weak vectors. 100 % = the strongest vector (usually heavy atom with its own image). Lower it to see the vectors of lighter atoms too."><span>Min. weight <output id="pvminOut"></output></span><input id="pvmin" type="range" min="0" max="100" step="1" value="15" data-u=" %"></label>
+</div></details>
+</div>
 </aside>
-<div class="stage">
+<main class="main-content">
+<div id="main-fourier" class="stage">
+<canvas id="cv" width="800" height="800"></canvas>
+<section class="card" data-tip="Merging and refinement statistics of this tool, next to the values stored in the CIF (Rint, R1, wR2, unique reflections)."><h2>Log</h2><div id="info" class="info">Load a CIF to start.</div></section>
+</div>
+<div id="main-patterson" class="stage" hidden>
 <canvas id="cvp" width="800" height="800"></canvas>
 <div id="preadout" class="hint ro"></div>
 <section class="card"><h2>Log</h2><div id="pinfo" class="info">Load a CIF to start.</div></section>
 </div>
-</div>
-</div>
 </main>
+</div>
 <script src="static/js/cif.js"></script><script src="static/js/hkl-parser.js"></script><script src="static/js/scattering-factors.js"></script>
-<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/patterson.js"></script>
+<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/patterson.js"></script><script src="static/js/ui.js"></script>
 </body></html>

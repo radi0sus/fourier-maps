@@ -33,7 +33,11 @@ disappear and R1 / wR2 fall. Positions and ADPs always come from the CIF.
 - *Auto contour step* (on by default) sets the contour step after every change of the model, so that the strongest missing peak gets about 12 lines; moving the contour slider by hand switches it off.
 - Missing atoms can be drawn as dashed rings (*Show missing atoms*) or hidden. The log lists the strongest Fo-Fc densities at the missing
   atoms and the R1 of the last steps. *Undo* goes back one step.
-- The Patterson tab is not affected by the partial model.
+- The Model card moves with the tab. In the Patterson tab the Fc² and Fo²−Fc² maps are computed from the partial model, so Fo²−Fc² shows the vectors that are still missing.
+
+## Layout
+
+Like the other tools: the controls are in a sidebar on the left (full window height, scrolls on its own), the map uses the rest of the window. The cards in the sidebar can be folded (click the title; the state is remembered in the browser). The Model card moves with the tab and is the last card of the sidebar. Drop a CIF anywhere in the window (or use *Open CIF*).
 
 ## Patterson tab
 
@@ -43,3 +47,4 @@ Second tab next to the Fourier map. P(u,v,w) = 1/V · Σ |F|² cos 2π(hu+kv+lw)
 - Harker elements are derived from the symmetry operators of the CIF (rotation/screw axes → Harker planes, mirror/glide planes → Harker lines)
   and drawn into the section (orange dashed = plane, green = line / point; thick orange frame = the section itself is a Harker section).
   The element buttons jump to a matching section (e.g. P2₁/c: v = ½ plane and [0, v, ½] line).
+- Interatomic vectors: for every pair of atoms (all symmetry images) the vector is drawn as a ring when it lies within 0.4 Å of the section; ring size ~ Z·Z. Purple = atom with its own symmetry image (these sit on the Harker elements), blue-green = other vectors, dashed = involves an atom that is not in the model. *Min. weight* hides weak vectors; the atom pairs can be limited to the model or to vectors with a missing atom. Hovering a ring shows the atom pair.

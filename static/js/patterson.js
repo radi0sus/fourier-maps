@@ -3,7 +3,7 @@
 (function(){
 'use strict';
 const $=id=>document.getElementById(id),cvp=$('cvp'),cx=cvp.getContext('2d');
-let pvol=null,pscale=1,hk=[],last=null,active=false,pq=false,pdr=false,pt=null,pqt=null,pdT=null,ppend=false,poff=null;
+let pvol=null,pscale=1,hk=[],last=null,active=false,pq=false,pdr=false,pt=null,pqt=null,pdT=null,ppend=false,poff=null,vecC=null,vmarks=[],lastVec=null;
 const pv={x:0,y:0},DEF={pct:{cs:3,sat:25,u:' %',cmax:10,cstp:0.1,smax:100},sigma:{cs:1,sat:6,u:' σ',cmax:10,cstp:0.1,smax:100},shelx:{cs:30,sat:250,u:'',cmax:300,cstp:1,smax:999}}; // per scale: contour defaults, slider ranges
 const modeKey=()=>$('pscl').value; // scale: pct | sigma | shelx
 
@@ -76,6 +76,34 @@ function hInSec(sec){
   return out;
 }
 
+// ---------- interatomic vectors (peaks the atoms of the CIF should produce) ----------
+// all vectors a(x_j) - b(x_i) over atom pairs and symmetry operators a, b, reduced to 0 <= u < 1; one entry per pair and position
+function vecs(){
+  const miss=window.simMissing||(()=>false),src=$('pvsrc').value,key=src+'|'+(window.simSig?simSig():'')+'|'+model.atoms.length;
+  if(vecC&&vecC.key===key)return vecC;
+  const A=model.atoms,ops=model.ops,Z=A.map(a=>(window.elZ?elZ(a.el):6)*(a.occ||1)),seen=new Set(),list=[];let wmax=0;
+  for(let i=0;i<A.length;i++)for(let j=0;j<A.length;j++){
+    const mi=miss(A[i].lab),mj=miss(A[j].lab);
+    if(src==='model'&&(mi||mj))continue;if(src==='missing'&&!(mi||mj))continue;
+    const w=Z[i]*Z[j],xs=ops.map(o=>[0,1,2].map(c=>dot(o.R[c],A[j].x)+o.t[c])),ys=ops.map(o=>[0,1,2].map(c=>dot(o.R[c],A[i].x)+o.t[c]));
+    for(let a=0;a<ops.length;a++)for(let b=0;b<ops.length;b++){
+      const f=[0,1,2].map(c=>{const d=xs[a][c]-ys[b][c];const r=d-Math.floor(d);return r>1-1e-4?0:r;});
+      if(f.every(x=>x<1e-3))continue; // zero vector = origin peak
+      const kk=i+','+j+','+f.map(x=>Math.round(x*1000)%1000).join(',');
+      if(seen.has(kk))continue;seen.add(kk);
+      list.push({f,w,i,j,self:i===j,part:mi||mj});if(w>wmax)wmax=w;}
+  }
+  return vecC={key,list,wmax};
+}
+function vecShown(sec){ // vectors that lie in the current section (within 0.4 A) and are strong enough
+  const V=vecs(),minw=(+$('pvmin').value||0)/100*V.wmax,col=i=>[model.M[0][i],model.M[1][i],model.M[2][i]];
+  const tol=0.4/(model.V/Math.hypot(...cross(col(sec.pi),col(sec.qi)))),out=[];
+  for(const v of V.list){if(v.w<minw)continue;let d=v.f[sec.a]-sec.s;d-=Math.round(d);if(Math.abs(d)<=tol)out.push(v);}
+  return{V,out};
+}
+const vecName=v=>model.atoms[v.i].lab+' – '+model.atoms[v.j].lab+(v.self?'′':'');
+const vecText=(v,wmax)=>`${vecName(v)}${v.self?' (atom with its own image)':''}${v.part?', involves a missing atom':''}, weight ${Math.round(100*v.w/wmax)} %, u v w = ${v.f.map(x=>x.toFixed(3)).join(' ')}`;
+
 // ---------- coefficients ----------
 // Wilson-type normalisation: <|F|^2>(s) = exp(a + slope*s^2) * sum_j f_j^2 ; E^2 - 1 gives a sharpened, origin-removed Patterson
 function wilson(){
@@ -94,8 +122,8 @@ function wilson(){
   prep.wil={a,B:-sl/2};
 }
 function patTerms(dmin,sharp,keepOrigin){ // |F|^2 (or E^2-1; E^2 with keepOrigin, so the origin peak stays) as real coefficients, phase 0, F000 left out
-  const T=new Map(),K2=prep.K*prep.K;
-  for(const u of prep.U){if(u.d<dmin)continue;let co=u.I*K2,cc=u.Fc2;if(sharp){const m=keepOrigin?0:1;co=co/u.nrm-m;cc=cc/u.nrm-m;}
+  const T=new Map(),PM=window.simPrep?simPrep(prep):prep,K2=PM.K*PM.K; // PM: partial model of the Fourier tab (or the full model)
+  for(let ui=0;ui<prep.U.length;ui++){const u=prep.U[ui];if(u.d<dmin)continue;let co=u.I*K2,cc=PM.U[ui].Fc2;if(sharp){const m=keepOrigin?0:1;co=co/u.nrm-m;cc=cc/u.nrm-m;}
     for(const o of model.ops){let g=hRt(o.R,u.h).map(Math.round);const f=g.find(x=>x!==0);if(f===undefined)continue;if(f<0)g=g.map(x=>-x+0);
       const k=g.join();if(!T.has(k))T.set(k,{g,fo:co,fc:cc,p:0});}}
   return[...T.values()];
@@ -156,6 +184,9 @@ function prender(){
       if(w.length)s+=`\nthis section is a Harker section: ${w.join(', ')}`;
       if(l.length)s+=`\nHarker elements in this section: ${l.join(', ')}`;
       if(!w.length&&!l.length)s+='\nno Harker element lies in this section';}
+    if(lastVec){const top=[];for(const v of lastVec.out.slice().sort((a,b)=>b.w-a.w)){const n=vecName(v);if(!top.includes(n))top.push(n);if(top.length>=3)break;}
+      s+=`\nvectors in this section: ${lastVec.out.length}`+(top.length?` (strongest pairs: ${top.join(', ')})`:'');
+      if($('pvsrc').value==='missing'&&!(window.simActive&&simActive()))s+='\nswitch on "Simulate refinement" (Fourier tab) to separate model and missing atoms';}
     if(!fast){const P=peaks(mp,ext,sec);s+=P.length?'\npeaks (u v w, height):\n'+P.map(p=>`  ${p.f.map(x=>x.toFixed(3)).join('  ')}   ${p.v.toFixed(1)}${DEF[modeKey()].u}${p.o?'  (origin)':''}`).join('\n'):'\nno peaks in this section';}
     $('pinfo').textContent=s;
   }catch(err){$('pinfo').textContent='Error: '+err.message;}
@@ -199,6 +230,17 @@ function pdraw(mp,cs,ext,sec){
     for(const P of H.pts){const[x,y]=F(P.p,P.q);cx.beginPath();cx.arc(x,y,9,0,7);cx.stroke();}
     if(H.whole.length){cx.strokeStyle=ORG;cx.lineWidth=6;cx.strokeRect(3,3,W-6,W-6);}
   }
+  // interatomic vectors
+  const VV=$('pshowV').checked&&model?vecShown(sec):null,SELF='#c026d3',CROSS='#0e7490';vmarks=[];lastVec=VV;
+  if(VV){
+    const P0=F(0,0),P1=F(1,0),P2=F(0,1),dp=[P1[0]-P0[0],P1[1]-P0[1]],dq=[P2[0]-P0[0],P2[1]-P0[1]];
+    for(const v of VV.out){const p=v.f[sec.pi],q=v.f[sec.qi],r=3.5+8*Math.sqrt(v.w/VV.V.wmax);
+      for(let k1=-3;k1<=3;k1++)for(let k2=-3;k2<=3;k2++){
+        const x=P0[0]+(p+k1)*dp[0]+(q+k2)*dq[0],y=P0[1]+(p+k1)*dp[1]+(q+k2)*dq[1];if(x<-15||y<-15||x>W+15||y>W+15)continue;
+        cx.setLineDash(v.part?[3,3]:[]);cx.strokeStyle=bg;cx.lineWidth=4.5;cx.beginPath();cx.arc(x,y,r,0,7);cx.stroke();
+        cx.strokeStyle=v.self?SELF:CROSS;cx.lineWidth=2;cx.beginPath();cx.arc(x,y,r,0,7);cx.stroke();vmarks.push({x,y,r,v});}}
+    cx.setLineDash([]);
+  }
   // unit-cell outline of the section with ticks
   cx.strokeStyle=mut;cx.lineWidth=1;cx.setLineDash([3,3]);cx.beginPath();
   const c=[F(0,0),F(1,0),F(1,1),F(0,1)];cx.moveTo(c[0][0],c[0][1]);for(let i=1;i<4;i++)cx.lineTo(c[i][0],c[i][1]);cx.closePath();cx.stroke();cx.setLineDash([]);
@@ -210,7 +252,7 @@ function pdraw(mp,cs,ext,sec){
   const raw=2*ext/6,nice=[0.5,1,2,5,10,20,50].filter(v=>v<=raw).pop()||0.5,L=nice*W/(2*ext);
   cx.strokeStyle=fg;cx.fillStyle=fg;cx.lineWidth=2;cx.beginPath();cx.moveTo(20,W-24);cx.lineTo(20+L,W-24);cx.stroke();cx.textAlign='left';cx.font='13px system-ui';cx.fillText(nice+' Å',20,W-32);
   if($('pshowLegend').checked){
-    const bw=300,bh=(col?64:44)+(H?18:0),bx=W-bw-16,by=W-bh-16;cx.globalAlpha=.9;cx.fillStyle=bg;cx.fillRect(bx,by,bw,bh);cx.globalAlpha=1;
+    const bw=300,bh=(col?64:44)+(H?18:0)+(VV?18:0),bx=W-bw-16,by=W-bh-16;cx.globalAlpha=.9;cx.fillStyle=bg;cx.fillRect(bx,by,bw,bh);cx.globalAlpha=1;
     cx.strokeStyle=mut;cx.lineWidth=1;cx.strokeRect(bx,by,bw,bh);cx.font='12px system-ui';cx.textAlign='left';cx.fillStyle=fg;cx.lineWidth=1.3;
     let x=bx+10;for(const[d,t,w]of[[[],'positive',85],[[6,4],'negative',90],[[1.5,3.5],'zero',0]]){cx.strokeStyle=fg;cx.setLineDash(d);cx.beginPath();cx.moveTo(x,by+16);cx.lineTo(x+22,by+16);cx.stroke();cx.setLineDash([]);cx.fillText(t,x+27,by+20);x+=w;}
     let y=by+36;
@@ -222,6 +264,8 @@ function pdraw(mp,cs,ext,sec){
     else{cx.fillStyle=fg;cx.fillText(`step ${cs}${unitS}`,bx+10,y);y+=18;}
     if(H){cx.setLineDash([9,5]);cx.strokeStyle=ORG;cx.lineWidth=2;cx.beginPath();cx.moveTo(bx+10,y-4);cx.lineTo(bx+32,y-4);cx.stroke();cx.setLineDash([]);cx.fillStyle=fg;cx.fillText('Harker plane',bx+37,y);
       cx.strokeStyle=GRN;cx.beginPath();cx.moveTo(bx+135,y-4);cx.lineTo(bx+157,y-4);cx.stroke();cx.fillText('Harker line / point',bx+162,y);}
+    if(VV){const yy=y+(H?18:0);cx.lineWidth=2;cx.setLineDash([]);cx.strokeStyle=SELF;cx.beginPath();cx.arc(bx+20,yy-4,5,0,7);cx.stroke();cx.fillStyle=fg;cx.fillText('atom + own image',bx+32,yy);
+      cx.strokeStyle=CROSS;cx.beginPath();cx.arc(bx+155,yy-4,5,0,7);cx.stroke();cx.fillText('other vector (size ~ Z·Z)',bx+167,yy);}
   }
   return `range ${mn.toFixed(1)} … ${mx.toFixed(1)}${unitS}, step ${cs} (solid +, dashed −, dotted 0)`;
 }
@@ -240,14 +284,17 @@ function setMode(){ // sensible defaults per coefficient type
   $('pcstep').value=d.cs;$('pcstep').dataset.u=d.u;$('psat').value=d.sat;$('psat').dataset.u=d.u;syncOut();
 }
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+  const t=b.dataset.tab;
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
-  $('tab-fourier').hidden=b.dataset.tab!=='fourier';$('tab-patterson').hidden=b.dataset.tab!=='patterson';
-  active=b.dataset.tab==='patterson';if(active)ensure();
+  for(const k of['side','main']){$(k+'-fourier').hidden=t!=='fourier';$(k+'-patterson').hidden=t!=='patterson';}
+  const sc=$('simCard'),as=$('side-'+t); // the Model card follows the tab
+  if(sc&&as){as.appendChild(sc);$('simHint').textContent=t==='patterson'?'Tick the atoms of the partial model. The Fc² and Fo²−Fc² maps and the vectors follow the model.':'Click a peak in the map to add the missing atom there (Shift+click removes an atom). Or tick atoms in the list.';}
+  active=t==='patterson';if(active)ensure();
 }));
 $('pcoef').addEventListener('change',()=>{pvol=null;pv.x=pv.y=0;recompute();});
 $('pscl').addEventListener('change',()=>{setMode();if(pvol){calcScale();live();}}); // only the scale changes: no new FFT
 $('pdmin').addEventListener('input',recompute);
-['pmap','ppos','pzoom','pgstep','pcstep','psat','pshowH','pshowLegend','pcm0','pcm1','pax0','pax1','pax2'].forEach(id=>['input','change'].forEach(e=>$(id).addEventListener(e,live)));
+['pmap','ppos','pzoom','pgstep','pcstep','psat','pshowH','pshowV','pvsrc','pvmin','pshowLegend','pcm0','pcm1','pax0','pax1','pax2'].forEach(id=>['input','change'].forEach(e=>$(id).addEventListener(e,live)));
 ['ppos','pzoom','pgstep'].forEach(id=>$(id).addEventListener('input',quick));
 document.querySelectorAll('input[name=paxis]').forEach(r=>r.addEventListener('change',()=>{pv.x=pv.y=0;}));
 document.querySelectorAll('[data-pos]').forEach(b=>b.addEventListener('click',()=>{$('ppos').value=b.dataset.pos;syncOut();live();}));
@@ -261,7 +308,9 @@ cvp.addEventListener('pointermove',e=>{
   const{mp,ext,sec}=last,X=-ext+(e.clientX-r.left)/r.width*2*ext,Y=ext-(e.clientY-r.top)/r.height*2*ext,fr=sec.fr;
   const f=mv(model.Mi,[0,1,2].map(k=>fr.o[k]+X*fr.e1[k]+Y*fr.e2[k])).map(x=>x-Math.floor(x)),i=Math.round((X+ext)/mp.gs),j=Math.round((Y+ext)/mp.gs);
   const v=(i>=0&&j>=0&&i<mp.n&&j<mp.n)?mp.g[j*mp.n+i]:NaN;
-  $('preadout').textContent=`u v w = ${f.map(x=>x.toFixed(3)).join('  ')}   |   P = ${isNaN(v)?'–':v.toFixed(1)}${DEF[modeKey()].u}`;});
+  const W2=cvp.width,qx=(e.clientX-r.left)/r.width*W2,qy=(e.clientY-r.top)/r.height*W2;let hv=null,hd=1e9;
+  for(const m of vmarks){const d=Math.hypot(m.x-qx,m.y-qy);if(d<m.r+5&&d<hd){hd=d;hv=m.v;}}
+  $('preadout').textContent=`u v w = ${f.map(x=>x.toFixed(3)).join('  ')}   |   P = ${isNaN(v)?'–':v.toFixed(1)}${DEF[modeKey()].u}`+(hv&&lastVec?`   |   vector ${vecText(hv,lastVec.V.wmax)}`:'');});
 const endDrag=()=>{if(!pt)return;pt=null;pdr=false;cvp.classList.remove('drag');live();};
 cvp.addEventListener('pointerup',endDrag);cvp.addEventListener('pointercancel',endDrag);
 cvp.addEventListener('wheel',e=>{if(!pvol||!last)return;e.preventDefault();const r=cvp.getBoundingClientRect();if(!r.width)return;
@@ -274,7 +323,7 @@ $('ppng').addEventListener('click',()=>{if(!last)return;cvp.toBlob(b=>{const a=d
 $('pcpng').addEventListener('click',()=>{if(last)copyCanvasPNG(cvp,$('pcpng'));});
 
 // hooks called from app.js
-window.patReset=()=>{pvol=null;last=null;hk=[];pv.x=pv.y=0;$('ppng').disabled=true;$('pcpng').disabled=true;$('hkList').textContent='';$('preadout').textContent='';};
+window.patReset=()=>{pvol=null;last=null;vecC=null;vmarks=[];lastVec=null;hk=[];pv.x=pv.y=0;$('ppng').disabled=true;$('pcpng').disabled=true;$('hkList').textContent='';$('preadout').textContent='';};
 window.patReady=()=>{
   hk=harker(model);const L=$('hkList');L.textContent='';
   hk.forEach((el,i)=>{const b=document.createElement('button');b.className='chip'+(el.align?'':' off');b.dataset.i=i;b.dataset.tip=el.tip+(el.align?'':' (not axis-parallel: drawn as overlay only)');
@@ -282,6 +331,8 @@ window.patReady=()=>{
   if(!hk.length)L.textContent='none (no rotation, screw or mirror/glide operators)';
   if(active)ensure();
 };
+// the partial model changed (Fourier tab): Fc² and the vectors follow
+window.patModelChanged=()=>{if(!model||!prep)return;vecC=null;if(active)recompute();else pvol=null;};
 setMode();
-window.PattersonCore={harker,nullspace,patTerms,wilson,computeP:()=>{computeP();return{pvol,pscale};}};
+window.PattersonCore={vecs,harker,nullspace,patTerms,wilson,computeP:()=>{computeP();return{pvol,pscale};}};
 })();

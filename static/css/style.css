@@ -2,19 +2,12 @@
 @media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#181b21;--fg:#e8e9ec;--mut:#8f95a1;--acc:#5b8def;--acc2:#8b7cf6;--bd:#2a2e37;--sh:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.35)}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1320px;margin:0 auto;padding:1.5rem 1.25rem 3rem;display:flex;flex-direction:column;gap:1rem}
 h1{margin:0;font-size:1.7rem;letter-spacing:-.02em}.sub{margin:.2rem 0 0;color:var(--mut)}
 h2{margin:0 0 .7rem;font-size:.78rem;font-weight:650;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:1rem 1.1rem;box-shadow:var(--sh)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 @media(max-width:720px){.grid2{grid-template-columns:1fr}}
 .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.4rem}
-.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-height:150px;padding:1.4rem;text-align:center;cursor:pointer;
- border:2px dashed var(--bd);border-radius:16px;background:var(--card);transition:border-color .15s,background .15s,transform .15s}
-.drop:hover,.drop.over{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 7%,var(--card))}
-.drop.over{transform:scale(1.005)}
-.dz-title{font-size:1.2rem;font-weight:600}.dz-sub{color:var(--mut);font-size:.88rem}
-.dz-name{color:var(--acc);font-weight:600;margin-top:.2rem;min-height:1.2em}
 select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:9px;padding:.45rem .55rem;font:inherit}
 .sl{display:block;margin-top:.7rem}.sl>span{display:flex;justify-content:space-between;font-size:.88rem;color:var(--mut);margin-bottom:.15rem}
 .sl output{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
@@ -58,13 +51,20 @@ button.ghost:hover:not(:disabled){border-color:var(--acc);color:var(--acc);filte
 /* PNG button inside the View card */
 .opts .btns{margin-left:auto;display:flex;gap:.5rem}
 .opts .btns .ghost{margin-left:0}
-.card>.hint{margin:-.3rem 0 .6rem}
+.card-body>.hint{margin:0 0 .6rem}
 
-/* controls left, map right */
-.layout{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:1rem;align-items:start}
-.panel,.stage{display:flex;flex-direction:column;gap:1rem;min-width:0}
-.panel .grid2{grid-template-columns:1fr;gap:0}
-@media(max-width:960px){.layout{grid-template-columns:1fr}.stage{order:-1}}
+/* app shell: sidebar with its own scrolling on the left, the map uses the rest of the window */
+.app-shell{display:grid;grid-template-columns:360px minmax(0,1fr);min-height:100vh}
+.sidebar{height:100vh;position:sticky;top:0;overflow-y:auto;border-right:1px solid var(--bd);background:color-mix(in srgb,var(--card) 55%,var(--bg));padding:1rem;display:flex;flex-direction:column;gap:.75rem}
+.side-tab{display:flex;flex-direction:column;gap:.75rem}
+.main-content{min-width:0;padding:1rem}
+.stage{display:flex;flex-direction:column;gap:1rem;min-width:0}
+.stage canvas{display:block;margin:0 auto;width:min(100%,max(360px,calc(100vh - 15rem)));height:auto;aspect-ratio:1} /* leaves room for the log below */
+.sidebar .grid2{grid-template-columns:1fr;gap:0}
+.app-brand h1{font-size:1.3rem}.app-brand .sub{font-size:.85rem;line-height:1.4}
+.sidebar button.tab{flex:1}
+.sidebar [data-tip]:hover::after{max-width:min(280px,78vw)}
+@media(max-width:980px){.app-shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--bd)}.stage canvas{width:100%}}
 
 /* tabs, chips, patterson tab */
 [hidden]{display:none!important}
@@ -78,7 +78,7 @@ button.chip:hover:not(:disabled){border-color:var(--acc);color:var(--acc);filter
 button.chip.off{opacity:.55;cursor:default}
 #cvp{cursor:grab;touch-action:none}#cvp.drag{cursor:grabbing}
 .ro{min-height:1.4em;font-variant-numeric:tabular-nums}
-.card>.hint+.chips{margin-top:.3rem}
+.card-body>.hint+.chips{margin-top:.3rem}
 
 /* simulated refinement (Model card) */
 .simstat{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem 1rem;margin:.2rem 0 .7rem}
@@ -91,3 +91,24 @@ button.chip.sel,button.chip.sel:hover:not(:disabled){background:var(--acc);borde
 button.chip.act{border-color:var(--acc);color:var(--acc)}
 button.chip:disabled{opacity:.45;cursor:default}
 .switch input:disabled{opacity:.5;cursor:default}
+
+/* collapsible cards (like the other tools) */
+details.card{padding:0}
+details.card>summary{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 1.1rem;cursor:pointer;list-style:none;user-select:none;border-radius:13px;font-size:.78rem;font-weight:650;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"▸";font-size:.9rem;line-height:1;transition:transform .15s}
+details.card>summary:hover{color:var(--fg)}
+details.card[open]>summary{border-bottom:1px solid var(--bd);border-radius:13px 13px 0 0;background:color-mix(in srgb,var(--bg) 55%,var(--card))}
+details.card[open]>summary::after{transform:rotate(90deg)}
+.card-body{padding:1rem 1.1rem}
+.simstat{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem 1rem;margin:.2rem 0 .5rem}
+.simnext{margin:0 0 .4rem;font-variant-numeric:tabular-nums}.simnext:empty{display:none}
+#preadout{background:transparent}
+
+/* file row (the whole window is the drop target) */
+.filebar{display:flex;align-items:center;gap:.6rem;padding:.45rem .55rem;min-width:0;border:1px solid var(--bd);border-radius:12px;background:var(--card);cursor:pointer;box-shadow:var(--sh)}
+.filebar:hover{border-color:var(--acc)}
+.fb-btn{flex:none;padding:.3rem .85rem;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:650;font-size:.88rem}
+.dz-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--acc);font-weight:600;font-size:.88rem}
+.dz-name.ph{color:var(--mut);font-weight:400;font-size:.82rem}
+#dropveil{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--acc) 12%,transparent);border:3px dashed var(--acc);color:var(--acc);font-size:1.4rem;font-weight:650;pointer-events:none}

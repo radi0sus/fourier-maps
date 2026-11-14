@@ -40,6 +40,9 @@ function missingPeaks(){
 // ---- hooks used by app.js / map.js ----
 window.simPrep=p=>{if(!SIM.on)return p;const c=simCalc();return Object.assign({},p,{U:c.U,K:c.K});};
 window.simMissing=lab=>SIM.on&&!SIM.sel.has(lab);
+window.simActive=()=>SIM.on;
+window.simSig=()=>SIM.on?[...SIM.sel].sort().join(','):'';   // signature of the model, for caches in the Patterson tab
+window.elZ=Zof;
 window.simGhosts=()=>SIM.on&&SIM.ghost;
 window.simInfo=()=>{
   if(!SIM.on||!vol||!model)return'';
@@ -58,6 +61,8 @@ function ui(){
   $('simStat').innerHTML=`<span class="big">R1 ${P1(c.R1)}</span><span class="big">wR2 ${P1(c.wR2)}</span><span class="hint">full model ${P1(prep.R1)} / ${P1(prep.wR2)} &middot; ${c.n} of ${N} atoms</span>`;
   $('simAtoms').querySelectorAll('button').forEach(b=>b.classList.toggle('sel',SIM.sel.has(b.dataset.lab)));
   $('simAdd').disabled=SIM.sel.size>=N;$('simUndo').disabled=SIM.hist.length<2;
+  const mp=missingPeaks().slice(0,3);
+  $('simNext').textContent=mp.length?'next peaks (Fo−Fc at missing atoms): '+mp.map(q=>`${q.lab} ${q.h.toFixed(1)}`).join(' · ')+' e/Å³':'all atoms are in the model';
 }
 // contour step that follows the model: about 12 lines up to the strongest missing peak, snapped to a round value
 function autoStep(){
@@ -68,7 +73,7 @@ function autoStep(){
   let best=nice[0];for(const n of nice)if(Math.abs(Math.log(n/want))<Math.abs(Math.log(best/want)))best=n;
   $('cstep').value=best;syncOut();
 }
-function refresh(){computeVolume();autoStep();render();ui();}
+function refresh(){computeVolume();autoStep();render();ui();if(window.patModelChanged)patModelChanged();}
 function commit(desc){
   const c=simCalc();
   SIM.hist.push({desc,sel:[...SIM.sel],R1:c.R1,wR2:c.wR2});if(SIM.hist.length>60)SIM.hist.shift();
