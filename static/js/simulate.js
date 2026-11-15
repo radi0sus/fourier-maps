@@ -123,7 +123,7 @@ $('simRefit').addEventListener('change',()=>{SIM.refit=$('simRefit').checked;if(
 let dn=null;
 cv.addEventListener('pointerdown',e=>{dn={x:e.clientX,y:e.clientY,b:e.button};});
 cv.addEventListener('pointerup',e=>{
-  if(!SIM.on||!dn||!last||dn.b>0)return;
+  if(!SIM.on||!dn||!last||dn.b>0||e.metaKey||e.ctrlKey||e.altKey)return; // Cmd/Ctrl/Alt + click picks atoms for the plane (orient.js)
   const moved=Math.hypot(e.clientX-dn.x,e.clientY-dn.y);dn=null;if(moved>4)return;
   const r=cv.getBoundingClientRect();if(!r.width)return;
   const ext=last[2],u=-ext+(e.clientX-r.left)/r.width*2*ext,v=ext-(e.clientY-r.top)/r.height*2*ext,add=!e.shiftKey,sl=+$('slab').value||0.4;

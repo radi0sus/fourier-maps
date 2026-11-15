@@ -112,3 +112,7 @@ details.card[open]>summary::after{transform:rotate(90deg)}
 .dz-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--acc);font-weight:600;font-size:.88rem}
 .dz-name.ph{color:var(--mut);font-weight:400;font-size:.82rem}
 #dropveil{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--acc) 12%,transparent);border:3px dashed var(--acc);color:var(--acc);font-size:1.4rem;font-weight:650;pointer-events:none}
+
+/* turning the section */
+.rotmode{cursor:grab}
+.rotmode:active{cursor:grabbing}

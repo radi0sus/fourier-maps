@@ -13,6 +13,10 @@
   <div class="row3" data-tip="Three atoms that define the section plane. The map is drawn in the plane through them, centred on their midpoint."><select id="a1"></select><select id="a2"></select><select id="a3"></select></div>
   <label class="sl" data-tip="Shifts the section parallel to itself, along its normal. Positive and negative values look above and below the plane through the three atoms."><span>Offset <output id="offOut"></output></span><input id="off" type="range" min="-3" max="3" step="0.05" value="0" data-u=" &Aring;"></label>
   <label class="sl" data-tip="Atoms closer to the plane than this distance are drawn into the map, with bonds between them."><span>Atom slab <output id="slabOut"></output></span><input id="slab" type="range" min="0.1" max="1" step="0.05" value="0.4" data-u=" &Aring;"></label>
+ 
+  <div class="opts" style="margin-top:.7rem"><label class="switch" data-tip="Draws the bonded molecule around the centre of the section as a pale skeleton with atom names, including the parts outside the atom slab. It also appears while you hold Cmd, Ctrl or Alt over the map."><input type="checkbox" id="orMol"><span>Show molecule</span></label>
+   <div class="btns"><button id="orReset" class="ghost" data-tip="Turns the section back into the plane through its three atoms (or the three atoms you picked).">Reset tilt</button></div></div>
+  <div class="hint" id="orInfo" style="margin-top:.5rem"></div>
  </div></details>
 <details class="card" data-key="f-map" open><summary>Map</summary><div class="card-body">
   <div data-tip="Fo−Fc: difference map (residual density; the F000 term cancels). 2Fo−Fc: the Fo map plus the difference map. Atoms of the model keep their height, missing atoms stand out about twice as strongly as in the Fo map (less model bias), so structure and gaps are in one picture. Fo / Fc (relative): without the F000 term, so zero means the cell-average density. Fo / Fc (absolute): F000 (electrons per cell, from the CIF) is added back as a constant, so the map shows the real electron density in e/Å³, mostly positive apart from truncation ripples. F000 cancels in Fo−Fc."><select id="type"><option value="diff">Fo &minus; Fc (difference)</option><option value="2fofc">2Fo &minus; Fc (relative to cell mean)</option><option value="fo">Fo (relative to cell mean)</option><option value="fc">Fc (relative to cell mean)</option><option value="fo_abs">Fo (absolute, with F000)</option><option value="fc_abs">Fc (absolute, with F000)</option></select></div>
@@ -109,5 +113,5 @@
 </main>
 </div>
 <script src="static/js/cif.js"></script><script src="static/js/hkl-parser.js"></script><script src="static/js/scattering-factors.js"></script>
-<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/patterson.js"></script><script src="static/js/ui.js"></script>
+<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/orient.js"></script><script src="static/js/patterson.js"></script><script src="static/js/ui.js"></script>
 </body></html>

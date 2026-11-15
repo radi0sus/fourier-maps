@@ -5,7 +5,7 @@ let model=null,prep=null,last=null,baseInfo='',fileBase='map';
 function hexRGB(s){s=s.trim().replace('#','');if(s.length===3)s=s.replace(/./g,'$&$&');return[0,2,4].map(i=>parseInt(s.slice(i,i+2),16));}
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 async function loadFile(f){
-  if(!f)return;$('dzname').textContent=f.name;$('dzname').classList.remove('ph');fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();if(window.simReset)simReset();
+  if(!f)return;$('dzname').textContent=f.name;$('dzname').classList.remove('ph');fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();if(window.simReset)simReset();if(window.orientReset)orientReset();
   try{
     $('info').textContent='Reading '+f.name+' ...';
     model=buildModel(parseCIF(await f.text()));
@@ -39,11 +39,11 @@ function render(){
   if(!vol)return;
   try{
     const fast=drag||quick,ext=4/(+$('zoom').value||1),step=Math.max(+$('gstep').value,2*(4/(+$('zoom').value||1))/((fast?121:241)-1)),cs=+$('cstep').value,type=$('type').value,F=f000(model);
-    const fr=planeFrame(model,['a1','a2','a3'].map(i=>$(i).value),+$('off').value||0);
+    const lab3=['a1','a2','a3'].map(i=>$(i).value),fr=window.orientFrame?orientFrame(model,lab3,+$('off').value||0):planeFrame(model,lab3,+$('off').value||0); // orientFrame: plane through the atoms, optionally turned (orient.js)
     fr.o=fr.o.map((v,i)=>v+view.x*fr.e1[i]+view.y*fr.e2[i]); // pan: shifts the centre of the section within its plane
     const mp=samplePlane(model,vol,fr,ext,step,type,type.endsWith('_abs')?F.v/model.V:0,fast);
     last=[mp,cs,ext,overlay(model,fr,ext,Math.max(+$('slab').value||0.4,window.simGhosts&&simGhosts()?1.2:0)),type,fr];$('png').disabled=false;$('cpng').disabled=false;
-    $('info').textContent=baseInfo+'\n'+draw(...last)+(type.endsWith('_abs')?`\nF000 = ${F.v.toFixed(1)} e (${F.src}) -> +${(F.v/model.V).toFixed(3)} e/Å³ added`:'')+(window.simInfo?simInfo():'');
+    $('info').textContent=baseInfo+'\n'+draw(...last)+(type.endsWith('_abs')?`\nF000 = ${F.v.toFixed(1)} e (${F.src}) -> +${(F.v/model.V).toFixed(3)} e/Å³ added`:'')+(window.simInfo?simInfo():'')+(window.orientInfo?orientInfo():'');
   }catch(err){$('info').textContent='Error: '+err.message;}
 }
 const live=()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;render();});}};
@@ -68,6 +68,7 @@ function draw(mp,cs,ext,atoms,type){
     for(let q=0;q<S.n;q+=4){ctx.moveTo(sx(S.a[q]),sy(S.a[q+1]));ctx.lineTo(sx(S.a[q+2]),sy(S.a[q+3]));}ctx.stroke();});
   ctx.globalAlpha=1;ctx.setLineDash([]);ctx.font='13px system-ui';ctx.textAlign='center';ctx.strokeStyle=mut;ctx.lineWidth=2.5;
   const sl=+$('slab').value||0.4,miss=window.simMissing||(()=>false),at0=$('showAtoms').checked?atoms.filter(a=>miss(a.lab)||Math.abs(a.dz)<sl):[],at2=at0.filter(a=>!miss(a.lab));
+  if(window.orientDraw)orientDraw(ux,vy,fg,bg,mut); // molecule skeleton, picked atoms, pivot
   for(let i=0;i<at2.length;i++)for(let j=i+1;j<at2.length;j++){const p=at2[i],q=at2[j];
     if(Math.hypot(p.c[0]-q.c[0],p.c[1]-q.c[1],p.c[2]-q.c[2])<(RAD[p.el]||1.4)+(RAD[q.el]||1.4)+0.4){ctx.beginPath();ctx.moveTo(ux(p.u),vy(p.v));ctx.lineTo(ux(q.u),vy(q.v));ctx.stroke();}}
   for(const a of at2){ctx.fillStyle=ATOM_COLOR[a.el]||'#a050c0';ctx.beginPath();ctx.arc(ux(a.u),vy(a.v),6,0,7);ctx.fill();
@@ -113,7 +114,8 @@ $('cpng').addEventListener('click',()=>{if(last)copyCanvasPNG(cv,$('cpng'));});
 // ---- pan (drag), zoom (wheel, around the pointer), reset (double-click) ----
 ['a1','a2','a3'].forEach(id=>$(id).addEventListener('change',()=>{view.x=view.y=0;}));
 let pt=null;
-cv.addEventListener('pointerdown',e=>{if(!vol||e.button>0)return;pt={x:e.clientX,y:e.clientY};drag=true;cv.classList.add('drag');try{cv.setPointerCapture(e.pointerId);}catch(_){}});
+cv.addEventListener('pointerdown',e=>{if(!vol||e.button>0||e.metaKey||e.ctrlKey||e.altKey)return; // with Cmd/Ctrl/Alt the drag turns the section (orient.js)
+  pt={x:e.clientX,y:e.clientY};drag=true;cv.classList.add('drag');try{cv.setPointerCapture(e.pointerId);}catch(_){}});
 cv.addEventListener('pointermove',e=>{if(!pt)return;const r=cv.getBoundingClientRect();if(!r.width)return;const k=2*(4/(+$('zoom').value||1))/r.width;
   view.x-=(e.clientX-pt.x)*k;view.y+=(e.clientY-pt.y)*k;pt={x:e.clientX,y:e.clientY};live();});
 const endDrag=()=>{if(!pt)return;pt=null;drag=false;cv.classList.remove('drag');live();};

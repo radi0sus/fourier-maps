@@ -7,7 +7,7 @@ No server, no build step: unzip, keep the folder structure, open `index.html`.
 fourier-maps/
   index.html
   static/css/style.css
-  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,patterson}.js
+  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,patterson}.js
 ```
 
 Reads `_shelx_hkl_file`, `_refln` and `_diffrn_refln` data. Fc is computed from the model in the CIF
@@ -23,6 +23,10 @@ Mouse: drag the map to pan, wheel to zoom around the pointer, double-click to re
 Performance: while dragging or moving a slider a cheap preview is drawn (coarser grid, trilinear); the full-quality map follows 150 ms after the last change. Atoms are generated for the visible region only, so panning never runs out of atoms.
 
 The map type *2Fo − Fc* (relative) is the Fo map plus the Fo − Fc map: atoms of the model keep their height, missing atoms come out about twice as strong as in the Fo map. With a partial model it shows the framework and the gaps in one picture.
+
+## Turning the section
+
+The plane atoms of the list are only a starting point. **Cmd / Ctrl / Alt + drag** turns the section around the midpoint of its three atoms (dragging over the whole width = 180°); the map is cut from the 3D grid, so any plane works. While the key is held (or with *Show molecule*) the bonded molecule around the centre is drawn as a pale skeleton with atom names, also the parts outside the atom slab, so you can see which atoms you are looking at. **Cmd / Ctrl / Alt + click** picks atoms (the clicked symmetry images); the third pick defines a new plane and brings it into the picture plane. *Reset tilt* turns back; choosing atoms from the lists goes back to a plane through those atoms. The log shows the angle against the atom plane. Plain click / Shift+click still add / remove atoms of the model in the simulated refinement.
 
 ## Simulated refinement (Model card, Fourier tab)
 
