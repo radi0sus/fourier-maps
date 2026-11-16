@@ -7,6 +7,11 @@
 <header class="app-brand"><h1>Fourier &amp; Patterson maps</h1>
 <p class="sub">Fourier contour maps (Fo&minus;Fc, Fo, Fc) from a CIF with reflection data &middot; runs entirely in your browser</p></header>
 <label id="drop" class="filebar tip-below" data-tip="Choose a CIF, or drop one anywhere in this window. It needs the model (cell, symmetry, atoms, ADPs) plus reflection data (_shelx_hkl_file, _refln or _diffrn_refln)."><input type="file" id="file" accept=".cif" hidden><span class="fb-btn">Open CIF</span><span id="dzname" class="dz-name ph">or drop a CIF anywhere</span></label>
+<div id="strline" class="strline" hidden data-tip="Formula, space group and Z of the structure (details in the Structure card)."></div>
+<details class="card" data-key="structure" open><summary>Structure</summary><div class="card-body">
+ <div id="strBody"><div class="hint">Load a CIF to see cell, space group and composition.</div></div>
+ <div class="opts" style="margin-top:.6rem"><div class="btns"><button id="strCopy" class="ghost" disabled data-tip="Copies all lines of this card as text.">Copy</button></div></div>
+</div></details>
 <div class="tabs" role="tablist"><button class="tab on" data-tab="fourier" data-tip="Fo/Fc/difference Fourier contour maps in the plane of three atoms.">Fourier map</button><button class="tab" data-tab="patterson" data-tip="Patterson map P(u,v,w) from |F|² (no phases): sections u, v or w = const, with Harker lines and planes.">Patterson map</button></div>
 <div id="side-fourier" class="side-tab">
 <details class="card" data-key="f-plane" open><summary>Plane</summary><div class="card-body">
@@ -19,7 +24,7 @@
   <div class="hint" id="orInfo" style="margin-top:.5rem"></div>
  </div></details>
 <details class="card" data-key="f-map" open><summary>Map</summary><div class="card-body">
-  <div data-tip="Fo−Fc: difference map (residual density; the F000 term cancels). 2Fo−Fc: the Fo map plus the difference map. Atoms of the model keep their height, missing atoms stand out about twice as strongly as in the Fo map (less model bias), so structure and gaps are in one picture. Fo / Fc (relative): without the F000 term, so zero means the cell-average density. Fo / Fc (absolute): F000 (electrons per cell, from the CIF) is added back as a constant, so the map shows the real electron density in e/Å³, mostly positive apart from truncation ripples. F000 cancels in Fo−Fc."><select id="type"><option value="diff">Fo &minus; Fc (difference)</option><option value="2fofc">2Fo &minus; Fc (relative to cell mean)</option><option value="fo">Fo (relative to cell mean)</option><option value="fc">Fc (relative to cell mean)</option><option value="fo_abs">Fo (absolute, with F000)</option><option value="fc_abs">Fc (absolute, with F000)</option></select></div>
+  <div data-tip="All maps are electron density in e/Å³, calculated as Fourier syntheses: &quot;Fo&quot; uses the observed amplitudes |Fo| with the phases of the model, &quot;Fc&quot; the calculated amplitudes and phases of the model. Peak height depends on the atomic number, the ADP and the resolution, it is not the electron count of the atom. Fo−Fc: difference map (residual density; the F000 term cancels). 2Fo−Fc: the Fo map plus the difference map. Atoms of the model keep their height, missing atoms stand out about twice as strongly as in the Fo map (less model bias), so structure and gaps are in one picture. Fo / Fc (relative): without the F000 term, so zero means the cell-average density. Fo / Fc (absolute): F000 (electrons per cell, from the CIF) is added back as a constant, so the map shows the real electron density in e/Å³, mostly positive apart from truncation ripples. F000 cancels in Fo−Fc."><select id="type"><option value="diff">Fo &minus; Fc (difference)</option><option value="2fofc">2Fo &minus; Fc (relative to cell mean)</option><option value="fo">Fo (relative to cell mean)</option><option value="fc">Fc (relative to cell mean)</option><option value="fo_abs">Fo (absolute, with F000)</option><option value="fc_abs">Fc (absolute, with F000)</option></select></div>
   <label class="sl" data-tip="Density step between neighbouring contour lines. Solid = positive, dashed = negative, dotted = zero. Smaller steps show weaker features; typical: 0.05 e/Å³ for difference maps, 0.5 for Fo/Fc."><span>Contour step <output id="cstepOut"></output></span><input id="cstep" type="range" min="0.01" max="1" step="0.01" value="0.05" data-u=" e/&Aring;&sup3;"></label>
   <label class="sl" data-tip="Leaves out reflections with a d-spacing below this value. 0 = use all. A cut reduces noise and Fourier ripples but blurs the map."><span>Resolution limit d<sub>min</sub> <output id="dminOut"></output></span><input id="dmin" type="range" min="0" max="2" step="0.05" value="0" data-u=" &Aring;"></label>
  </div></details>
@@ -32,7 +37,7 @@
   <label class="switch" data-tip="Show or hide the atoms and bonds lying in the section plane (within the atom slab)."><input type="checkbox" id="showAtoms" checked><span>Atoms &amp; bonds</span></label>
   <label class="switch" data-tip="Show or hide the legend at the bottom of the map: line styles, contour step and, in colour mode, the colour bar. The scale bar stays."><input type="checkbox" id="showLegend" checked><span>Legend</span></label>
   <div class="seg">
-   <input type="radio" name="cmode" id="cm0" value="bw" checked><label for="cm0" data-tip="Contour lines only: solid = positive, dashed = negative, dotted = zero.">Black / white</label><input type="radio" name="cmode" id="cm1" value="col"><label for="cm1" data-tip="Adds shaded density below the contours: blue = positive, red = negative, white = zero.">Blue / red</label>
+   <input type="radio" name="cmode" id="cm0" value="bw"><label for="cm0" data-tip="Contour lines only: solid = positive, dashed = negative, dotted = zero.">Black / white</label><input type="radio" name="cmode" id="cm1" value="col" checked><label for="cm1" data-tip="Adds shaded density below the contours: blue = positive, red = negative, white = zero.">Blue / red</label>
   </div>
    <div class="btns"><button id="cpng" class="ghost" disabled data-tip="Copies the map as a PNG image to the clipboard, exactly as shown, including atoms, legend and colours. Paste it into a document or slide. Available after a calculation.">Copy PNG</button>
    <button id="png" class="ghost" disabled data-tip="Saves the map as a PNG image exactly as shown, including atoms, legend and colours. Available after a calculation.">Save PNG</button></div>
@@ -40,12 +45,12 @@
 </div>
 </div></details>
 <details class="card" data-key="f-profile"><summary>Profile</summary><div class="card-body">
-  <div class="hint">Shift + drag on the map from atom to atom. The ends snap to atoms (also to atoms beside the section) and the profile follows the line in 3D.</div>
+  <div class="hint">Shift + drag on the map from atom to atom. The ends snap to atoms (also to atoms beside the section) and the profile follows the line in 3D. The curves are electron density; peak height depends on Z, ADP and resolution, it is not the electron count.</div>
   <label class="sl" data-tip="The line is continued beyond both end atoms by this length, so that you see the density falling to the baseline."><span>Extension <output id="pfextOut"></output></span><input id="pfext" type="range" min="0" max="3" step="0.25" value="1" data-u=" &Aring;"></label>
   <div class="opts" style="margin-top:.7rem">
-   <label class="switch" data-tip="Fo map (with the phases of the model)."><input type="checkbox" id="pfFo" checked><span>Fo</span></label>
-   <label class="switch" data-tip="Fc map of the model (the partial model in the simulated refinement)."><input type="checkbox" id="pfFc" checked><span>Fc</span></label>
-   <label class="switch" data-tip="Fo minus Fc."><input type="checkbox" id="pfDif" checked><span>Fo&minus;Fc</span></label>
+   <label class="switch" data-tip="ρ(Fo): electron density from the observed amplitudes |Fo| with the phases of the model (e/Å³)."><input type="checkbox" id="pfFo" checked><span>ρ(Fo)</span></label>
+   <label class="switch" data-tip="ρ(Fc): electron density of the model, from the calculated amplitudes and phases (the partial model in the simulated refinement)."><input type="checkbox" id="pfFc" checked><span>ρ(Fc)</span></label>
+   <label class="switch" data-tip="Δρ = ρ(Fo) − ρ(Fc): residual density."><input type="checkbox" id="pfDif" checked><span>Δρ</span></label>
    <div class="btns"><button id="pfClear" class="ghost" data-tip="Removes the line and the profile.">Clear line</button></div></div>
   <div class="hint" id="pfInfo" style="margin-top:.5rem"></div>
  </div></details>
@@ -98,7 +103,7 @@
   <label class="sl" data-tip="Distance between the points where the map is evaluated."><span>Grid spacing <output id="pgstepOut"></output></span><input id="pgstep" type="range" min="0.03" max="0.2" step="0.01" value="0.06" data-u=" &Aring;"></label>
   <div class="opts">
    <label class="switch"><input type="checkbox" id="pshowLegend" checked><span>Legend</span></label>
-   <div class="seg"><input type="radio" name="pcmode" id="pcm0" checked><label for="pcm0">Black / white</label><input type="radio" name="pcmode" id="pcm1"><label for="pcm1">Blue / red</label></div>
+   <div class="seg"><input type="radio" name="pcmode" id="pcm0"><label for="pcm0">Black / white</label><input type="radio" name="pcmode" id="pcm1" checked><label for="pcm1">Blue / red</label></div>
    <div class="btns"><button id="pcpng" class="ghost" disabled data-tip="Copies the map as a PNG image to the clipboard, exactly as shown.">Copy PNG</button>
    <button id="ppng" class="ghost" disabled>Save PNG</button></div>
   </div>
@@ -108,21 +113,34 @@
   <div style="margin-top:.6rem" data-tip="Which atom pairs are used. The model is the partial model of the Model card (Fourier tab); with Simulate refinement switched off all atoms count as in the model."><select id="pvsrc"><option value="all">All atoms</option><option value="model">Atoms in the model only</option><option value="missing">Only vectors with a missing atom</option></select></div>
   <label class="sl" data-tip="Hides weak vectors. 100 % = the strongest vector (usually heavy atom with its own image). Lower it to see the vectors of lighter atoms too."><span>Min. weight <output id="pvminOut"></output></span><input id="pvmin" type="range" min="0" max="100" step="1" value="15" data-u=" %"></label>
 </div></details>
+<details class="card" data-key="p-profile"><summary>Profile</summary><div class="card-body">
+  <div class="hint">Shift + drag on the map from peak to peak. The ends snap to the vector rings and to the origin peaks. Along a cell axis the strip has a second axis in fractional coordinates, so you can read a coordinate off a Harker line.</div>
+  <label class="sl" data-tip="The line is continued beyond both end points by this length."><span>Extension <output id="ppextOut"></output></span><input id="ppext" type="range" min="0" max="3" step="0.25" value="1" data-u=" &Aring;"></label>
+  <div class="opts" style="margin-top:.7rem">
+   <label class="switch" data-tip="P(Fo²): Patterson function from the observed intensities (unit as chosen in the Map card)."><input type="checkbox" id="ppFo" checked><span>P(Fo&sup2;)</span></label>
+   <label class="switch" data-tip="P(Fc²): Patterson function of the model (the partial model of the Fourier tab, if the simulated refinement is on)."><input type="checkbox" id="ppFc" checked><span>P(Fc&sup2;)</span></label>
+   <label class="switch" data-tip="ΔP = P(Fo²) − P(Fc²): difference Patterson."><input type="checkbox" id="ppDif" checked><span>ΔP</span></label>
+   <label class="switch" data-tip="The origin peak is far higher than everything else. When this is on, the height axis ignores the region within 1.2 &Aring; of an origin peak (the curves are cut off there)."><input type="checkbox" id="ppNoOrig"><span>Clip origin peak</span></label>
+   <div class="btns"><button id="ppClear" class="ghost" data-tip="Removes the line and the profile.">Clear line</button></div></div>
+  <div class="hint" id="ppInfo" style="margin-top:.5rem"></div>
+ </div></details>
 </div>
 </aside>
 <main class="main-content">
 <div id="main-fourier" class="stage">
 <canvas id="cv" width="800" height="800"></canvas>
+<div id="freadout" class="hint ro"></div>
 <canvas id="pfc" hidden></canvas>
 <section class="card" data-tip="Merging and refinement statistics of this tool, next to the values stored in the CIF (Rint, R1, wR2, unique reflections)."><h2>Log</h2><div id="info" class="info">Load a CIF to start.</div></section>
 </div>
 <div id="main-patterson" class="stage" hidden>
 <canvas id="cvp" width="800" height="800"></canvas>
 <div id="preadout" class="hint ro"></div>
+<canvas id="pfcP" hidden></canvas>
 <section class="card"><h2>Log</h2><div id="pinfo" class="info">Load a CIF to start.</div></section>
 </div>
 </main>
 </div>
 <script src="static/js/cif.js"></script><script src="static/js/hkl-parser.js"></script><script src="static/js/scattering-factors.js"></script>
-<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/orient.js"></script><script src="static/js/profile.js"></script><script src="static/js/patterson.js"></script><script src="static/js/ui.js"></script>
+<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/orient.js"></script><script src="static/js/profile.js"></script><script src="static/js/readout.js"></script><script src="static/js/info.js"></script><script src="static/js/patterson.js"></script><script src="static/js/ui.js"></script>
 </body></html>

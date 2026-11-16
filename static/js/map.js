@@ -34,7 +34,7 @@ function buildModel(cif){
   const wm=/\(([\d.]+)P\)\^2\^\s*\+\s*([\d.]+)P/.exec(it['_refine_ls_weighting_details']||'');
   const ref={R1:num(it._refine_ls_r_factor_gt),wR2:num(it._refine_ls_wr_factor_ref),n:num(it._reflns_number_total),Rint:num(it._diffrn_reflns_av_r_equivalents),dmax:num(it._diffrn_reflns_theta_max)};
   for(const at of atoms){let k=0;for(const o of ops){let ok=true;for(let i=0;i<3;i++){const d=o.R[i][0]*at.x[0]+o.R[i][1]*at.x[1]+o.R[i][2]*at.x[2]+o.t[i]-at.x[i];if(Math.abs(d-Math.round(d))>0.002)ok=false;}if(ok)k++;}at.stab=k||1;}
-  return{cell:{a,b,c,al,be,ga},V,M,Mi,rs,ops,atoms,wa:wm?+wm[1]:0,wb:wm?+wm[2]:0,ref,f000cif:num(it._exptl_crystal_f_000),refl:readRefl(cif)};
+  return{items:it,cell:{a,b,c,al,be,ga},V,M,Mi,rs,ops,atoms,wa:wm?+wm[1]:0,wb:wm?+wm[2]:0,ref,f000cif:num(it._exptl_crystal_f_000),refl:readRefl(cif)};
 }
 // F000 = electrons per cell (incl. f'): value from the CIF if given, else summed from the model
 function f000(m){

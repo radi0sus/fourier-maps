@@ -62,7 +62,7 @@ button.ghost:hover:not(:disabled){border-color:var(--acc);color:var(--acc);filte
 .stage{--cw:min(100%,max(360px,calc(100vh - 15rem)))} /* the map leaves room for the log below ... */
 .stage.haspf{--cw:min(100%,max(360px,calc(100vh - 15rem - 190px)))} /* ... and for the profile strip */
 .stage canvas{display:block;margin:0 auto;width:var(--cw);height:auto;aspect-ratio:1}
-#pfc{height:170px;aspect-ratio:auto;border:1px solid var(--bd);border-radius:12px;background:var(--card);cursor:crosshair}
+#pfc,#pfcP{height:170px;aspect-ratio:auto;border:1px solid var(--bd);border-radius:12px;background:var(--card);cursor:crosshair}
 .sidebar .grid2{grid-template-columns:1fr;gap:0}
 .app-brand h1{font-size:1.3rem}.app-brand .sub{font-size:.85rem;line-height:1.4}
 .sidebar button.tab{flex:1}
@@ -106,7 +106,7 @@ details.card[open]>summary::after{transform:rotate(90deg)}
 .card-body{padding:1rem 1.1rem}
 .simstat{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem 1rem;margin:.2rem 0 .5rem}
 .simnext{margin:0 0 .4rem;font-variant-numeric:tabular-nums}.simnext:empty{display:none}
-#preadout{background:transparent}
+
 
 /* file row (the whole window is the drop target) */
 .filebar{display:flex;align-items:center;gap:.6rem;padding:.45rem .55rem;min-width:0;border:1px solid var(--bd);border-radius:12px;background:var(--card);cursor:pointer;box-shadow:var(--sh)}
@@ -119,3 +119,12 @@ details.card[open]>summary::after{transform:rotate(90deg)}
 /* turning the section */
 .rotmode{cursor:grab}
 .rotmode:active{cursor:grabbing}
+
+/* read-out line under the maps: as wide as the map, centred like the map */
+.stage>.ro{width:var(--cw);margin:-.5rem auto 0;min-height:1.5em;font-size:.82rem;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* structure information */
+.strline{font-size:.9rem;font-weight:600;padding:0 .25rem;overflow-wrap:anywhere}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.15rem .8rem;margin:0;font-size:.84rem}
+.kv dt{color:var(--mut);white-space:nowrap}.kv dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.kv .sec{grid-column:1/-1;margin-top:.55rem;font-size:.72rem;font-weight:650;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);border-bottom:1px solid var(--bd);padding-bottom:.15rem}
+.kv .sec:first-child{margin-top:0}

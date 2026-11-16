@@ -5,17 +5,16 @@ let model=null,prep=null,last=null,baseInfo='',fileBase='map';
 function hexRGB(s){s=s.trim().replace('#','');if(s.length===3)s=s.replace(/./g,'$&$&');return[0,2,4].map(i=>parseInt(s.slice(i,i+2),16));}
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 async function loadFile(f){
-  if(!f)return;$('dzname').textContent=f.name;$('dzname').classList.remove('ph');fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();if(window.simReset)simReset();if(window.orientReset)orientReset();if(window.profileReset)profileReset();
+  if(!f)return;$('dzname').textContent=f.name;$('dzname').classList.remove('ph');fileBase=f.name.replace(/\.[^.]+$/,'');last=null;vol=null;view.x=view.y=0;$('png').disabled=true;$('cpng').disabled=true;if(window.patReset)patReset();if(window.simReset)simReset();if(window.orientReset)orientReset();if(window.profileReset)profileReset();if(window.infoReset)infoReset();
   try{
     $('info').textContent='Reading '+f.name+' ...';
     model=buildModel(parseCIF(await f.text()));
     $('info').textContent='Merging and computing structure factors ...';
     await new Promise(r=>setTimeout(r));
     prep=prepare(model);
-    $('info').textContent=`${f.name}: ${prep.nRaw} measured -> ${prep.U.length} unique (${prep.nAbs} systematic absences dropped, redundancy ${prep.red.toFixed(1)}), ${prep.nSel} with I>2σ, dmin = ${Math.min(...prep.U.map(u=>u.d)).toFixed(2)} Å
-this tool: Rint = ${(100*prep.Rint).toFixed(2)} %, R1 = ${(100*prep.R1).toFixed(2)} %, wR2 = ${(100*prep.wR2).toFixed(2)} %  |  CIF: Rint = ${(100*model.ref.Rint).toFixed(2)} %, R1 = ${(100*model.ref.R1).toFixed(2)} %, wR2 = ${(100*model.ref.wR2).toFixed(2)} %, ${model.ref.n} unique`;
+    $('info').textContent=`${f.name}: ${prep.U.length} unique reflections, dmin = ${Math.min(...prep.U.map(u=>u.d)).toFixed(2)} Å (cell, space group, composition and R values: Structure card)`;
     for(const id of['a1','a2','a3'])$(id).innerHTML=model.atoms.map(a=>`<option>${a.lab}</option>`).join('');
-    baseInfo=$('info').textContent;
+    baseInfo=$('info').textContent;if(window.infoUpdate)infoUpdate();
     model.atoms.filter(a=>a.el!=='H').slice(0,3).forEach((a,i)=>{$('a'+(i+1)).value=a.lab;}); // default plane: first three non-H atoms
     $('info').textContent+='\nComputing 3D density ...';await new Promise(r=>setTimeout(r));
     if(window.simReady)simReady();computeVolume();render();if(window.patReady)patReady();

@@ -7,7 +7,7 @@ No server, no build step: unzip, keep the folder structure, open `index.html`.
 fourier-maps/
   index.html
   static/css/style.css
-  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,profile,patterson}.js
+  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,profile,readout,info,patterson}.js
 ```
 
 Reads `_shelx_hkl_file`, `_refln` and `_diffrn_refln` data. Fc is computed from the model in the CIF
@@ -24,13 +24,21 @@ Performance: while dragging or moving a slider a cheap preview is drawn (coarser
 
 The map type *2Fo − Fc* (relative) is the Fo map plus the Fo − Fc map: atoms of the model keep their height, missing atoms come out about twice as strong as in the Fo map. With a partial model it shows the framework and the gaps in one picture.
 
+## Structure information and read-out
+
+Under the file field: a short line (formula, space group, Z) and the **Structure** card with cell, space group (with number, Hall symbol, crystal system, number of operations, centrosymmetric or not), composition (formula, formula weight, Z, F(000), calculated density, content of the asymmetric unit), the measurement (temperature, radiation, reflections, resolution, Rint) and the refinement (R1, wR2, GooF, parameters; values of this tool next to those of the CIF). *Copy* puts all lines on the clipboard. Missing items are left out.
+
+Under the map: a live read-out with the fractional coordinates at the pointer and the density of the shown map (Fourier tab), or the Patterson value (Patterson tab).
+
 ## Turning the section
 
 The plane atoms of the list are only a starting point. **Cmd / Ctrl / Alt + drag** turns the section around the midpoint of its three atoms (dragging over the whole width = 180°); the map is cut from the 3D grid, so any plane works. While the key is held (or with *Show molecule*) the bonded molecule around the centre is drawn as a pale skeleton with atom names, also the parts outside the atom slab, so you can see which atoms you are looking at. **Cmd / Ctrl / Alt + click** picks atoms (the clicked symmetry images); the third pick defines a new plane and brings it into the picture plane. *Reset tilt* turns back; choosing atoms from the lists goes back to a plane through those atoms. The log shows the angle against the atom plane. Plain click / Shift+click still add / remove atoms of the model in the simulated refinement.
 
 ## Profile
 
-**Shift + drag** on the map from atom to atom draws a line; the ends snap to atoms (also to atoms of the molecule beside the section, which is shown while Shift is held). A strip below the map shows Fo, Fc and Fo-Fc along the line (e/Å³ over Å, with the atoms near the line marked). The profile is cut from the 3D grid, so a bond that leaves the plane works too. Extension continues the line beyond both atoms. Hovering the strip moves a marker on the line in the map and vice versa; the × at the top right (or *Clear line*) removes it. The log lists Fo, Fc and Fo-Fc at the atom centres. The curves follow the map type (absolute types include F000) and the partial model of the simulated refinement.
+**Shift + drag** on the map from atom to atom draws a line; the ends snap to atoms (also to atoms of the molecule beside the section, which is shown while Shift is held). A strip below the map shows the electron density along the line (ρ(Fo), ρ(Fc) and Δρ = ρ(Fo) − ρ(Fc), in e/Å³ over Å, with the atoms near the line marked; relative to the cell mean unless an absolute map type with F000 is chosen). Peak heights depend on Z, ADP and resolution, they are not electron counts. The profile is cut from the 3D grid, so a bond that leaves the plane works too. Extension continues the line beyond both atoms. Hovering the strip moves a marker on the line in the map and vice versa; the × at the top right (or *Clear line*) removes it. The log lists ρ(Fo), ρ(Fc) and Δρ at the atom centres. The curves follow the map type (absolute types include F000) and the partial model of the simulated refinement.
+
+The Patterson tab has the same profile. The line snaps to the vector rings and the origin peaks; the strip shows P(Fo²), P(Fc²) and ΔP = P(Fo²) − P(Fc²) in the unit chosen in the Map card, and along a cell axis a second axis in fractional coordinates (read a coordinate off a Harker line). *Clip origin peak* leaves the origin peak out of the height axis.
 
 ## Simulated refinement (Model card, Fourier tab)
 
