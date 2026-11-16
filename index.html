@@ -39,6 +39,16 @@
  </div>
 </div>
 </div></details>
+<details class="card" data-key="f-profile"><summary>Profile</summary><div class="card-body">
+  <div class="hint">Shift + drag on the map from atom to atom. The ends snap to atoms (also to atoms beside the section) and the profile follows the line in 3D.</div>
+  <label class="sl" data-tip="The line is continued beyond both end atoms by this length, so that you see the density falling to the baseline."><span>Extension <output id="pfextOut"></output></span><input id="pfext" type="range" min="0" max="3" step="0.25" value="1" data-u=" &Aring;"></label>
+  <div class="opts" style="margin-top:.7rem">
+   <label class="switch" data-tip="Fo map (with the phases of the model)."><input type="checkbox" id="pfFo" checked><span>Fo</span></label>
+   <label class="switch" data-tip="Fc map of the model (the partial model in the simulated refinement)."><input type="checkbox" id="pfFc" checked><span>Fc</span></label>
+   <label class="switch" data-tip="Fo minus Fc."><input type="checkbox" id="pfDif" checked><span>Fo&minus;Fc</span></label>
+   <div class="btns"><button id="pfClear" class="ghost" data-tip="Removes the line and the profile.">Clear line</button></div></div>
+  <div class="hint" id="pfInfo" style="margin-top:.5rem"></div>
+ </div></details>
 <details class="card" data-key="model" id="simCard" open><summary>Model</summary><div class="card-body">
   <label class="switch" data-tip="Teaching mode: only the atoms ticked below contribute to Fc. The others are still in Fo, so they appear as peaks in the Fo&minus;Fc map. Add atoms step by step and watch the peaks vanish and R1 fall. Nothing is refined; positions and ADPs come from the CIF."><input type="checkbox" id="simOn" disabled><span>Simulate refinement (partial model)</span></label>
   <div id="simBody" hidden>
@@ -103,6 +113,7 @@
 <main class="main-content">
 <div id="main-fourier" class="stage">
 <canvas id="cv" width="800" height="800"></canvas>
+<canvas id="pfc" hidden></canvas>
 <section class="card" data-tip="Merging and refinement statistics of this tool, next to the values stored in the CIF (Rint, R1, wR2, unique reflections)."><h2>Log</h2><div id="info" class="info">Load a CIF to start.</div></section>
 </div>
 <div id="main-patterson" class="stage" hidden>
@@ -113,5 +124,5 @@
 </main>
 </div>
 <script src="static/js/cif.js"></script><script src="static/js/hkl-parser.js"></script><script src="static/js/scattering-factors.js"></script>
-<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/orient.js"></script><script src="static/js/patterson.js"></script><script src="static/js/ui.js"></script>
+<script src="static/js/map.js"></script><script src="static/js/app.js"></script><script src="static/js/simulate.js"></script><script src="static/js/orient.js"></script><script src="static/js/profile.js"></script><script src="static/js/patterson.js"></script><script src="static/js/ui.js"></script>
 </body></html>

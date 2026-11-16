@@ -121,8 +121,8 @@ cv.addEventListener('contextmenu',e=>{if(e.ctrlKey)e.preventDefault();}); // Ctr
 cv.addEventListener('pointerenter',()=>{O.hover=true;if(O.mod&&model&&vol&&!$('orMol').checked)live();});
 cv.addEventListener('pointerleave',()=>{O.hover=false;if(O.mod&&model&&vol&&!$('orMol').checked)live();});
 const setMod=v=>{if(O.mod===v)return;O.mod=v;cv.classList.toggle('rotmode',v);if(O.hover&&model&&vol&&!$('orMol').checked)live();};
-window.addEventListener('keydown',e=>{if(e.key==='Meta'||e.key==='Control'||e.key==='Alt')setMod(true);});
-window.addEventListener('keyup',e=>{if(e.key==='Meta'||e.key==='Control'||e.key==='Alt')setMod(e.metaKey||e.ctrlKey||e.altKey);});
+window.addEventListener('keydown',e=>{if(e.key==='Meta'||e.key==='Control'||e.key==='Alt'||e.key==='Shift')setMod(true);});
+window.addEventListener('keyup',e=>{if(e.key==='Meta'||e.key==='Control'||e.key==='Alt'||e.key==='Shift')setMod(e.metaKey||e.ctrlKey||e.altKey||e.shiftKey);});
 window.addEventListener('blur',()=>setMod(false));
 
 // ---- panel ----

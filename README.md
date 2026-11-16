@@ -7,7 +7,7 @@ No server, no build step: unzip, keep the folder structure, open `index.html`.
 fourier-maps/
   index.html
   static/css/style.css
-  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,patterson}.js
+  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,profile,patterson}.js
 ```
 
 Reads `_shelx_hkl_file`, `_refln` and `_diffrn_refln` data. Fc is computed from the model in the CIF
@@ -27,6 +27,10 @@ The map type *2Fo − Fc* (relative) is the Fo map plus the Fo − Fc map: atoms
 ## Turning the section
 
 The plane atoms of the list are only a starting point. **Cmd / Ctrl / Alt + drag** turns the section around the midpoint of its three atoms (dragging over the whole width = 180°); the map is cut from the 3D grid, so any plane works. While the key is held (or with *Show molecule*) the bonded molecule around the centre is drawn as a pale skeleton with atom names, also the parts outside the atom slab, so you can see which atoms you are looking at. **Cmd / Ctrl / Alt + click** picks atoms (the clicked symmetry images); the third pick defines a new plane and brings it into the picture plane. *Reset tilt* turns back; choosing atoms from the lists goes back to a plane through those atoms. The log shows the angle against the atom plane. Plain click / Shift+click still add / remove atoms of the model in the simulated refinement.
+
+## Profile
+
+**Shift + drag** on the map from atom to atom draws a line; the ends snap to atoms (also to atoms of the molecule beside the section, which is shown while Shift is held). A strip below the map shows Fo, Fc and Fo-Fc along the line (e/Å³ over Å, with the atoms near the line marked). The profile is cut from the 3D grid, so a bond that leaves the plane works too. Extension continues the line beyond both atoms. Hovering the strip moves a marker on the line in the map and vice versa; the × at the top right (or *Clear line*) removes it. The log lists Fo, Fc and Fo-Fc at the atom centres. The curves follow the map type (absolute types include F000) and the partial model of the simulated refinement.
 
 ## Simulated refinement (Model card, Fourier tab)
 
