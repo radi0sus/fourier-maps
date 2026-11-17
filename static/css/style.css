@@ -139,3 +139,22 @@ body.touch #touchbar{display:block}body.touch{padding-bottom:110px}
 [data-tip].tip-open::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 6px);z-index:20;width:max-content;max-width:min(320px,90vw);padding:.5rem .65rem;border-radius:9px;background:var(--fg);color:var(--bg);font:400 12.5px/1.45 system-ui,sans-serif;text-transform:none;letter-spacing:0;text-align:left;white-space:normal;box-shadow:var(--sh);pointer-events:none}
 @media (hover:none){[data-tip]:hover:not(.tip-open)::after{display:none}}
 @media (pointer:coarse){button,select,summary,.tab{min-height:40px}input[type=range]{min-height:34px}input[type=checkbox],input[type=radio]{width:20px;height:20px}}
+
+/* ---- touch, narrow screens: the map stays on top while the controls scroll underneath ---- */
+@media (max-width:980px) and (orientation:portrait){
+ body.touch{--mh:min(100vw,46vh)}
+ body.touch .app-shell{display:flex;flex-direction:column;gap:.75rem}
+ body.touch .main-content,body.touch .stage{display:contents}
+ body.touch #cv,body.touch #cvp{order:-3;position:sticky;top:0;z-index:6;width:var(--mh);height:var(--mh);background:var(--bg);box-shadow:0 1px 0 var(--bd)}
+ body.touch .stage>.ro{order:-2;position:sticky;top:var(--mh);z-index:6;width:var(--mh);margin:0 auto;background:var(--bg)}
+ body.touch .stage>canvas[id^=pfc]{order:-1;width:calc(100% - 2rem)}
+ body.touch .sidebar{order:0}
+ body.touch .stage>.card{order:5;margin:0 1rem 1rem}
+}
+/* touch, landscape phones: sidebar left, map right (like the desktop layout) */
+@media (max-width:980px) and (orientation:landscape){
+ body.touch .app-shell{grid-template-columns:320px minmax(0,1fr)}
+ body.touch .sidebar{position:sticky;height:100vh;border-right:1px solid var(--bd);border-bottom:0}
+ body.touch .stage,body.touch .stage.haspf{--cw:min(100%,max(240px,calc(100vh - 7rem)))}
+ body.touch .stage canvas{width:var(--cw)}
+}
