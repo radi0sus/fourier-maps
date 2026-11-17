@@ -66,3 +66,7 @@ Second tab next to the Fourier map. P(u,v,w) = 1/V · Σ |F|² cos 2π(hu+kv+lw)
   and drawn into the section (orange dashed = plane, green = line / point; thick orange frame = the section itself is a Harker section).
   The element buttons jump to a matching section (e.g. P2₁/c: v = ½ plane and [0, v, ½] line).
 - Interatomic vectors: for every pair of atoms (all symmetry images) the vector is drawn as a ring when it lies within 0.4 Å of the section; ring size ~ Z·Z. Purple = atom with its own symmetry image (these sit on the Harker elements), blue-green = other vectors, dashed = involves an atom that is not in the model. *Min. weight* hides weak vectors; the atom pairs can be limited to the model or to vectors with a missing atom. Hovering a ring shows the atom pair.
+
+## Resolution limit
+
+The resolution sliders (Map card of both tabs) start at the d<sub>min</sub> of the data: the left end means all reflections ("all data (d ≥ 0.80 Å)"), moving to the right cuts reflections with a smaller d-spacing. The slider can only make the resolution worse, never better than the data, and every position has an effect.

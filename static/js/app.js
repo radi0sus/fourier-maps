@@ -17,7 +17,7 @@ async function loadFile(f){
     baseInfo=$('info').textContent;if(window.infoUpdate)infoUpdate();
     model.atoms.filter(a=>a.el!=='H').slice(0,3).forEach((a,i)=>{$('a'+(i+1)).value=a.lab;}); // default plane: first three non-H atoms
     $('info').textContent+='\nComputing 3D density ...';await new Promise(r=>setTimeout(r));
-    if(window.simReady)simReady();computeVolume();render();if(window.patReady)patReady();
+    if(window.simReady)simReady();setResLimit();computeVolume();render();if(window.patReady)patReady();
   }catch(err){$('info').textContent='Error: '+err.message;}
 }
 $('file').addEventListener('change',e=>loadFile(e.target.files[0]));
@@ -28,7 +28,16 @@ window.addEventListener('dragover',e=>{if(hasFiles(e))e.preventDefault();});
 window.addEventListener('dragleave',e=>{if(!hasFiles(e))return;dragN=Math.max(0,dragN-1);if(!dragN)veil.hidden=true;});
 window.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragN=0;veil.hidden=true;loadFile(e.dataTransfer.files[0]);});
 // slider read-outs
-function syncOut(){document.querySelectorAll('input[type=range]').forEach(r=>{const o=$(r.id+'Out');if(o)o.textContent=(+r.value).toFixed((r.step.split('.')[1]||'').length)+(r.dataset.u||'');});}
+let dFloor=0; // d-spacing of the highest-resolution reflection of the data
+function syncOut(){document.querySelectorAll('input[type=range]').forEach(r=>{const o=$(r.id+'Out');if(!o)return;
+  if(r.dataset.dmin&&dFloor>0){o.textContent=+r.value<=+r.min+1e-9?`all data (d ≥ ${dFloor.toFixed(2)} Å)`:(+r.value).toFixed(2)+' Å';return;} // the left end of the resolution sliders is the data limit
+  o.textContent=(+r.value).toFixed((r.step.split('.')[1]||'').length)+(r.dataset.u||'');});}
+// resolution sliders: the left end is 'all data' (the d_min of the data), so every position has an effect
+function setResLimit(){
+  dFloor=Math.min(...prep.U.map(u=>u.d));const lo=Math.max(0,Math.floor(dFloor/0.05+1e-9)*0.05);
+  for(const id of['dmin','pdmin']){const s=$(id);s.min=lo.toFixed(2);s.max=Math.max(2,lo+0.5).toFixed(2);s.value=lo.toFixed(2);}
+  syncOut();
+}
 document.querySelectorAll('input[type=range]').forEach(r=>r.addEventListener('input',syncOut));syncOut();
 $('type').addEventListener('change',()=>{$('cstep').value=$('type').value==='diff'?0.05:0.5;syncOut();});
 // ---- live view: 3D density once per file / resolution limit, sections are cut out instantly ----
