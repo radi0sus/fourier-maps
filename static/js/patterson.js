@@ -177,7 +177,7 @@ function prender(){
     const fr={o:sec.fr.o.map((v,i)=>v+pv.x*sec.fr.e1[i]+pv.y*sec.fr.e2[i]),e1:sec.fr.e1,e2:sec.fr.e2,n:sec.fr.n};
     const mp=samplePlane(model,pvol,fr,ext,step,$('pmap').value,0,fast);
     for(let i=0;i<mp.g.length;i++)mp.g[i]*=pscale;
-    sec.fr=fr;last={mp,ext,sec};$('ppng').disabled=false;$('pcpng').disabled=false;
+    sec.fr=fr;last={mp,ext,sec};if(PP)PP.sync();$('ppng').disabled=false;$('pcpng').disabled=false;
     const txt=pdraw(mp,cs,ext,sec),H=$('pshowH').checked?hInSec(sec):null;
     let s=`section ${'uvw'[sec.a]} = ${sec.s.toFixed(3)}   ·   ${txt}`;
     if(H){const w=H.whole.map(e=>e.label),l=[...new Set([...H.lines.map(x=>x.el.label),...H.pts.map(x=>x.el.label)])];
@@ -356,6 +356,7 @@ PP=makeProfile({
     const b=fp.map(Math.round);for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(let k=-1;k<=1;k++){add([b[0]+i,b[1]+j,b[2]+k],'origin');if(Math.abs(out[out.length-1].w)>0.6)out.pop();}
     return out;
   },
+  depth:()=>last?(a=>({key:'axis'+a,d:last.sec.s,dir:[model.M[0][a],model.M[1][a],model.M[2][a]],fmt:x=>(x>0?'+':'')+x.toFixed(3)+' along '+'uvw'[a]}))(last.sec.a):null,
   live:()=>live(),setDrag:b=>{pdr=b;}
 });
 setMode();

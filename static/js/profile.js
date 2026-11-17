@@ -4,7 +4,7 @@
 // The profile is cut from the 3D grid, so a line that leaves the plane works too. A strip below the map shows the curves;
 // hovering the strip (or the line in the map) moves a marker in the other one.
 window.makeProfile=function(cfg){
-const PF={line:null,draft:null,hover:null,dkey:'',dat:null,ver:0},cv=cfg.cv,pc=cfg.pc,stage=cfg.stage,$id=k=>document.getElementById(cfg.ids[k]);
+const PF={line:null,draft:null,hover:null,dkey:'',dat:null,ver:0,prev:null},cv=cfg.cv,pc=cfg.pc,stage=cfg.stage,$id=k=>document.getElementById(cfg.ids[k]);
 const LINE='#0ea5a4',COL={fo:'#2f6df6',fc:'#8a909c',df:'#e03b3b'},KEYS=['fo','fc','df'];
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const fmt=(x,d=1)=>(Math.abs(x)<10?x.toFixed(d+1):x.toFixed(d));
@@ -84,7 +84,8 @@ function drawStrip(){
   g.restore();g.setLineDash([]);
   g.textAlign='left';g.fillStyle=fg;g.font='600 12px system-ui';const L=PF.line;
   const title=`${L.labA||'•'} → ${L.labB||'•'}   ${D.len.toFixed(2)} Å`;g.fillText(title,mL,13);g.font='11px system-ui';
-  if(cfg.sub){g.fillStyle=mut;g.fillText('   '+cfg.sub(),mL+g.measureText(title).width*1.07,13);} // e.g. relative to the cell mean
+  const moved=L.moved&&Math.abs(L.moved)>1e-6&&L.movedFmt?'moved '+L.movedFmt(L.moved)+' with the section':'',subs=[cfg.sub?cfg.sub():'',moved].filter(Boolean).join('   ·   ');
+  if(subs){g.fillStyle=mut;g.fillText('   '+subs,mL+g.measureText(title).width*1.07,13);} // e.g. relative to the cell mean
   let lx=w-mR-26;g.textAlign='right';for(const[k,name]of show.slice().reverse()){g.fillStyle=fg;g.fillText(name,lx,13);const tw=g.measureText(name).width;g.strokeStyle=COL[k];g.lineWidth=2;g.setLineDash(k==='fc'?[4,2]:[]);g.beginPath();g.moveTo(lx-tw-22,13);g.lineTo(lx-tw-5,13);g.stroke();g.setLineDash([]);lx-=tw+34;}
   g.fillStyle=mut;g.font='16px system-ui';g.textAlign='right';g.fillText('×',w-6,12);
   if(PF.hover!=null&&PF.hover>=0&&PF.hover<=D.tot){
@@ -97,13 +98,24 @@ function drawStrip(){
   pc._geom={mL,pw,w,h,tot:D.tot};
 }
 
+// the line goes with the section: when the section is moved along its normal (offset / position), the line moves by the same amount
+function sync(){
+  const dep=cfg.depth?cfg.depth():null;
+  if(!dep){PF.prev=null;return;}
+  if(PF.line&&PF.prev&&PF.prev.key===dep.key&&Math.abs(dep.d-PF.prev.d)>1e-9){
+    const dd=dep.d-PF.prev.d;for(let k=0;k<3;k++){const t=dep.dir[k]*dd;PF.line.A[k]+=t;PF.line.B[k]+=t;}
+    PF.line.moved=(PF.line.moved||0)+dd;PF.line.movedFmt=dep.fmt;PF.dat=null;
+  }
+  PF.prev={key:dep.key,d:dep.d};
+}
 const api={
+  sync,
   invalidate(){PF.ver++;PF.dat=null;},
-  reset(){PF.line=PF.draft=null;PF.hover=null;PF.dat=null;pc.hidden=true;stage.classList.remove('haspf');ui();},
+  reset(){PF.line=PF.draft=null;PF.hover=null;PF.dat=null;PF.prev=null;pc.hidden=true;stage.classList.remove('haspf');ui();},
   update(){if(PF.line)drawStrip();},
   info(){
     const D=PF.line&&data();if(!D)return'';const NM=cfg.names;
-    let s=`\nProfile ${PF.line.labA||'•'} → ${PF.line.labB||'•'}, ${D.len.toFixed(2)} Å (extended by ${D.ext} Å at both ends)${cfg.note?cfg.note():''}`;
+    let s=`\nProfile ${PF.line.labA||'•'} → ${PF.line.labB||'•'}, ${D.len.toFixed(2)} Å (extended by ${D.ext} Å at both ends)${cfg.note?cfg.note():''}${PF.line.moved&&Math.abs(PF.line.moved)>1e-6&&PF.line.movedFmt?`, moved ${PF.line.movedFmt(PF.line.moved)} with the section`:''}`;
     let on=D.near.filter(a=>a.perp<0.4&&a.s>=D.ext-0.3&&a.s<=D.ext+D.len+0.3);
     if(on.some(a=>a.w!==undefined))on=on.sort((a,b)=>b.w-a.w);on=on.slice(0,8);
     if(on.length)s+='\n'+on.map(a=>`  ${a.lab}: ${NM[0]} ${a.fo.toFixed(1)}, ${NM[1]} ${a.fc.toFixed(1)}, ${NM[2]} ${a.df.toFixed(1)} ${cfg.unit()}`).join('\n');
@@ -145,7 +157,7 @@ cv.addEventListener('pointermove',e=>{
 });
 const endDrag=()=>{
   if(!gs)return;const g=gs;gs=null;const d=PF.draft;PF.draft=null;cfg.setDrag(false);
-  if(d&&g.moved>4){const len=Math.hypot(d.B[0]-d.A[0],d.B[1]-d.A[1],d.B[2]-d.A[2]);if(len>0.3){PF.line=d;PF.hover=null;PF.dat=null;ui();}}
+  if(d&&g.moved>4){const len=Math.hypot(d.B[0]-d.A[0],d.B[1]-d.A[1],d.B[2]-d.A[2]);if(len>0.3){PF.line=d;PF.line.moved=0;PF.hover=null;PF.dat=null;PF.prev=null;sync();ui();}}
   cfg.live();
 };
 cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
@@ -189,9 +201,10 @@ const FP=makeProfile({
     if(window.OrientCore){try{for(const a of OrientCore.molecule().atoms){const p=proj(fr,a.c);cand.push({lab:a.lab,c:a.c,u:p.u,v:p.v,w:p.w});}}catch(_){}}
     return cand;
   },
+  depth:()=>last&&last[5]?{key:'offset',d:+$('off').value||0,dir:last[5].n,fmt:x=>(x>0?'+':'')+x.toFixed(2)+' Å'}:null,
   live:()=>live(),setDrag:b=>{drag=b;}
 });
-window.profileInvalidate=FP.invalidate;window.profileReset=FP.reset;window.profileUpdate=FP.update;window.profileInfo=FP.info;
+window.profileInvalidate=FP.invalidate;window.profileReset=FP.reset;window.profileUpdate=()=>{FP.sync();FP.update();};window.profileInfo=FP.info;
 window.profileDraw=(ux,vy,fg,bg,mut)=>FP.draw(ctx,(u,v)=>[ux(u),vy(v)],fg,bg,mut);
 window.ProfileCore={state:FP.state,data:FP.data};
 function proj(fr,c){const d=[c[0]-fr.o[0],c[1]-fr.o[1],c[2]-fr.o[2]];return{u:dot(d,fr.e1),v:dot(d,fr.e2),w:dot(d,fr.n)};}
