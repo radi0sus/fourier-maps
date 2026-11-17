@@ -7,7 +7,7 @@ No server, no build step: unzip, keep the folder structure, open `index.html`.
 fourier-maps/
   index.html
   static/css/style.css
-  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,profile,readout,info,patterson}.js
+  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,profile,readout,info,patterson,touch}.js
 ```
 
 Reads `_shelx_hkl_file`, `_refln` and `_diffrn_refln` data. Fc is computed from the model in the CIF
@@ -70,3 +70,7 @@ Second tab next to the Fourier map. P(u,v,w) = 1/V · Σ |F|² cos 2π(hu+kv+lw)
 ## Resolution limit
 
 The resolution sliders (Map card of both tabs) start at the d<sub>min</sub> of the data: the left end means all reflections ("all data (d ≥ 0.80 Å)"), moving to the right cuts reflections with a smaller d-spacing. The slider can only make the resolution worse, never better than the data, and every position has an effect.
+
+## Touch / tablet
+
+On touch and pen input a small bar appears at the bottom (also with `?touch=1`; `?touch=0` hides it). It replaces the modifier keys: *Pan* (drag pans, tap adds a model atom), *Turn* (drag turns the section, tap picks atoms; Fourier tab only), *Profile* (drag from atom to atom draws the line, tap removes a model atom). Two fingers always pinch-zoom and pan. A tap shows the read-out at that point and stays until the next tap; tapping a control with a hint shows the hint. *Reset view* is the double-click. Mouse and keyboard work exactly as before.
