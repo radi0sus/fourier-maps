@@ -172,8 +172,9 @@ body.fsmode{overflow:hidden}
 html body.fsmode .stage.fs{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;position:fixed;inset:0;z-index:40;margin:0;padding:.6rem;background:var(--bg);
  --cw:min(100vw - 1.2rem,100vh - 3.4rem)}
 @supports (height:100dvh){html body.fsmode .stage.fs{--cw:min(100vw - 1.2rem,100dvh - 3.4rem)}}
-html body.touch.fsmode .stage.fs{--cw:min(100vw - 1.2rem,100vh - 3.4rem - 100px)}
-@supports (height:100dvh){html body.touch.fsmode .stage.fs{--cw:min(100vw - 1.2rem,100dvh - 3.4rem - 100px)}}
+/* touch: the mode bar (fixed, bottom) must not cover the map or the read-out, so the map sits above it; --tbh is its measured height (fullscreen.js) */
+html body.touch.fsmode .stage.fs{justify-content:flex-end;padding-bottom:calc(var(--tbh,100px) + 14px);--cw:min(100vw - 1.2rem,100vh - 3.4rem - var(--tbh,100px) - 12px)}
+@supports (height:100dvh){html body.touch.fsmode .stage.fs{--cw:min(100vw - 1.2rem,100dvh - 3.4rem - var(--tbh,100px) - 12px)}}
 html body.fsmode .stage.fs>section.card{display:none!important}
 html body.fsmode .stage.fs #cv,html body.fsmode .stage.fs #cvp{position:static;z-index:auto;top:auto;order:0;width:var(--cw);height:auto;aspect-ratio:1;background:var(--card);box-shadow:var(--sh)}
 html body.fsmode .stage.fs>.ro{position:static;z-index:auto;top:auto;order:0;width:var(--cw);margin:0 auto;background:none;min-height:1.5em}
@@ -181,7 +182,7 @@ html body.fsmode .stage.fs .fsctl{position:fixed;top:calc(.6rem + env(safe-area-
 html body.fsmode .stage.fs.haspf .fsctl .fspf{display:inline-flex}
 /* the profile strip becomes an overlay in the lower left corner of the map (the legend is at the lower right) */
 html body.fsmode .stage.fs #pfc,html body.fsmode .stage.fs #pfcP{position:absolute;order:0;left:calc(50% - var(--cw)/2 + .6rem);bottom:calc(2.6rem + env(safe-area-inset-bottom,0px));width:min(calc(var(--cw)*.66),780px);height:160px;margin:0;z-index:4;opacity:.95;box-shadow:var(--sh)}
-html body.touch.fsmode .stage.fs #pfc,html body.touch.fsmode .stage.fs #pfcP{bottom:calc(8.2rem + env(safe-area-inset-bottom,0px))}
+html body.touch.fsmode .stage.fs #pfc,html body.touch.fsmode .stage.fs #pfcP{bottom:calc(var(--tbh,100px) + 3.3rem)}
 html body.fsmode .stage.fs.pfoff #pfc,html body.fsmode .stage.fs.pfoff #pfcP{display:none!important}
 body.fsmode #touchbar{z-index:60}
 #touchbar button[data-fs]{min-width:76px}

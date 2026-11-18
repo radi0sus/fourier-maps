@@ -31,6 +31,10 @@ if(bar){
   tb.addEventListener('click',()=>cur?leave():enter(active()));
 }
 
+// the touch bar covers the lower edge of the window; measure it so that the CSS can leave room (--tbh)
+function measure(){if(!bar)return;const h=Math.round(bar.getBoundingClientRect().height);if(h>0)document.documentElement.style.setProperty('--tbh',h+'px');}
+if(bar){if(typeof ResizeObserver==='function')new ResizeObserver(measure).observe(bar);window.addEventListener('resize',measure);measure();}
+
 function sync(){
   const on=!!cur;
   stages.forEach(st=>{
@@ -48,7 +52,7 @@ function enter(st){
   cur=st;
   st.classList.remove('pfoff');const pf=st.querySelector('.fspf');if(pf)pf.textContent='Hide profile'; // the profile starts as in the normal view
   st.classList.add('fs');document.body.classList.add('fsmode');
-  sync();after();
+  measure();sync();after();
 }
 function leave(){
   if(!cur)return;
