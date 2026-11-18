@@ -158,3 +158,30 @@ body.touch #touchbar{display:block}body.touch{padding-bottom:110px}
  body.touch .stage,body.touch .stage.haspf{--cw:min(100%,max(240px,calc(100vh - 7rem)))}
  body.touch .stage canvas{width:var(--cw)}
 }
+
+/* ---- full screen (fullscreen.js): the stage of the active tab covers the browser window ---- */
+.stage{position:relative}
+.fsctl{position:absolute;top:.5rem;left:calc(50% + var(--cw)/2 - 2.9rem);z-index:5;display:flex;gap:.4rem;opacity:.55;transition:opacity .15s}
+.fsctl:hover,.stage:hover>.fsctl,.fsctl:focus-within{opacity:1}
+.fsctl button{background:var(--card);color:var(--fg);border:1px solid var(--bd);box-shadow:var(--sh);padding:0;width:36px;height:36px;min-height:0;border-radius:10px;display:inline-flex;align-items:center;justify-content:center}
+.fsctl button:hover:not(:disabled){border-color:var(--acc);color:var(--acc);filter:none}
+.fsctl .fspf{display:none;width:auto;padding:0 .8rem;font-size:.88rem;font-weight:600}
+.fsctl [data-tip]:hover::after,.fsctl [data-tip].tip-open::after{left:auto;right:0;bottom:auto;top:calc(100% + 6px)}
+body.touch .stage:not(.fs)>.fsctl{display:none} /* touch: the button is in the touch bar */
+body.fsmode{overflow:hidden}
+html body.fsmode .stage.fs{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;position:fixed;inset:0;z-index:40;margin:0;padding:.6rem;background:var(--bg);
+ --cw:min(100vw - 1.2rem,100vh - 3.4rem)}
+@supports (height:100dvh){html body.fsmode .stage.fs{--cw:min(100vw - 1.2rem,100dvh - 3.4rem)}}
+html body.touch.fsmode .stage.fs{--cw:min(100vw - 1.2rem,100vh - 3.4rem - 100px)}
+@supports (height:100dvh){html body.touch.fsmode .stage.fs{--cw:min(100vw - 1.2rem,100dvh - 3.4rem - 100px)}}
+html body.fsmode .stage.fs>section.card{display:none!important}
+html body.fsmode .stage.fs #cv,html body.fsmode .stage.fs #cvp{position:static;order:0;width:var(--cw);height:auto;aspect-ratio:1;background:var(--card);box-shadow:var(--sh)}
+html body.fsmode .stage.fs>.ro{position:static;order:0;width:var(--cw);margin:0 auto;background:none;min-height:1.5em}
+html body.fsmode .stage.fs .fsctl{position:fixed;top:calc(.6rem + env(safe-area-inset-top,0px));right:calc(.6rem + env(safe-area-inset-right,0px));left:auto;opacity:1;z-index:45}
+html body.fsmode .stage.fs.haspf .fsctl .fspf{display:inline-flex}
+/* the profile strip becomes an overlay in the lower left corner of the map (the legend is at the lower right) */
+html body.fsmode .stage.fs #pfc,html body.fsmode .stage.fs #pfcP{position:absolute;order:0;left:calc(50% - var(--cw)/2 + .6rem);bottom:calc(2.6rem + env(safe-area-inset-bottom,0px));width:min(calc(var(--cw)*.66),780px);height:160px;margin:0;z-index:2;opacity:.95;box-shadow:var(--sh)}
+html body.touch.fsmode .stage.fs #pfc,html body.touch.fsmode .stage.fs #pfcP{bottom:calc(8.2rem + env(safe-area-inset-bottom,0px))}
+html body.fsmode .stage.fs.pfoff #pfc,html body.fsmode .stage.fs.pfoff #pfcP{display:none!important}
+body.fsmode #touchbar{z-index:60}
+#touchbar button[data-fs]{min-width:76px}

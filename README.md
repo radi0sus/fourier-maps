@@ -7,7 +7,7 @@ No server, no build step: unzip, keep the folder structure, open `index.html`.
 fourier-maps/
   index.html
   static/css/style.css
-  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,profile,readout,info,patterson,touch}.js
+  static/js/{cif,hkl-parser,scattering-factors,map,app,simulate,orient,profile,readout,info,patterson,touch,fullscreen}.js
 ```
 
 Reads `_shelx_hkl_file`, `_refln` and `_diffrn_refln` data. Fc is computed from the model in the CIF
@@ -74,3 +74,7 @@ The resolution sliders (Map card of both tabs) start at the d<sub>min</sub> of t
 ## Touch / tablet
 
 On touch and pen input a small bar appears at the bottom (also with `?touch=1`; `?touch=0` hides it). It replaces the modifier keys: *Pan* (drag pans, tap adds a model atom), *Turn* (drag turns the section, tap picks atoms; Fourier tab only), *Profile* (drag from atom to atom draws the line, tap removes a model atom). Two fingers always pinch-zoom and pan. A tap shows the read-out at that point and stays until the next tap; tapping a control with a hint shows the hint. *Reset view* is the double-click. Mouse and keyboard work exactly as before.
+
+## Full screen
+
+The button at the top right of a map (Fourier and Patterson tab) lets the map fill the whole browser window (not the browser's own full-screen mode, so it works the same on desktop and tablet). The sidebar and the log are hidden; the section, zoom, tilt and profile line stay as they are, and clicking, panning and the simulated refinement keep working. A profile line is shown as an overlay in the lower left corner of the map; *Hide profile* at the top right switches it off. **Esc** or the button at the top right goes back. On touch input the button is in the touch bar (*Full screen*), the mode bar stays available, and the exit button is at the top right.
