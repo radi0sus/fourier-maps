@@ -32,7 +32,9 @@ if(bar){
 }
 
 // the touch bar covers the lower edge of the window; measure it so that the CSS can leave room (--tbh)
-function measure(){if(!bar)return;const h=Math.round(bar.getBoundingClientRect().height);if(h>0)document.documentElement.style.setProperty('--tbh',h+'px');}
+// --tbh = distance from the top edge of the bar to the bottom of the window. That includes the gap below the bar (10 px plus the
+// safe area of the iPad), which a plain height would miss.
+function measure(){if(!bar)return;const r=bar.getBoundingClientRect();if(!(r.height>0))return;const base=cur?cur.getBoundingClientRect().bottom:window.innerHeight,h=Math.round(base-r.top);if(h>0)document.documentElement.style.setProperty('--tbh',h+'px');}
 if(bar){if(typeof ResizeObserver==='function')new ResizeObserver(measure).observe(bar);window.addEventListener('resize',measure);measure();}
 
 function sync(){

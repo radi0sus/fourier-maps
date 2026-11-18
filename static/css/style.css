@@ -181,7 +181,7 @@ html body.fsmode .stage.fs>.ro{position:static;z-index:auto;top:auto;order:0;wid
 html body.fsmode .stage.fs .fsctl{position:fixed;top:calc(.6rem + env(safe-area-inset-top,0px));right:calc(.6rem + env(safe-area-inset-right,0px));left:auto;opacity:1;z-index:45}
 html body.fsmode .stage.fs.haspf .fsctl .fspf{display:inline-flex}
 /* the profile strip becomes an overlay in the lower left corner of the map (the legend is at the lower right) */
-html body.fsmode .stage.fs #pfc,html body.fsmode .stage.fs #pfcP{position:absolute;order:0;left:calc(50% - var(--cw)/2 + .6rem);bottom:calc(2.6rem + env(safe-area-inset-bottom,0px));width:min(calc(var(--cw)*.66),780px);height:160px;margin:0;z-index:4;opacity:.95;box-shadow:var(--sh)}
+html body.fsmode .stage.fs #pfc,html body.fsmode .stage.fs #pfcP{position:absolute;order:0;left:calc(50% - var(--cw)/2 + .6rem);bottom:calc(2.6rem + env(safe-area-inset-bottom,0px));width:min(calc(var(--cw)*.6),780px);height:160px;margin:0;z-index:4;opacity:.95;box-shadow:var(--sh)}
 html body.touch.fsmode .stage.fs #pfc,html body.touch.fsmode .stage.fs #pfcP{bottom:calc(var(--tbh,100px) + 3.3rem)}
 html body.fsmode .stage.fs.pfoff #pfc,html body.fsmode .stage.fs.pfoff #pfcP{display:none!important}
 body.fsmode #touchbar{z-index:60}
